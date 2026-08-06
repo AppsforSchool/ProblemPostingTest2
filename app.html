@@ -1,0 +1,265 @@
+<html lang="ja">
+  
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>問題投稿</title>
+  <meta name="apple-mobile-web-app-capable" content="yes"> 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Signika+Negative:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="appStyle.css">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+  
+<body>
+  <div id="loading-overlay">
+    <h1>loading...</h1>
+    <p>読み込んでいます｡</p>
+  </div>
+
+  <div id="share-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">シェア</p>
+        <span id="share-modal-close" class="close-button">&times;</span>
+      </div>
+      <img src="qrcode.png" alt="QR Code">
+    </div>
+  </div>
+  <div id="setting-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">出題設定</p>
+        <span id="setting-modal-close" class="close-button">&times;</span>
+        
+      </div>
+      
+      <div class="setting-card-top">
+        <span id="setting-subject" class="badge t0">不明</span>
+        <span id="setting-grade" class="badge t0">不明</span>
+        <span id="setting-count" class="badge t0">
+        <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <rect x="3" y="1" width="11" height="8" rx="1.4" opacity="0.45"></rect>
+  <rect x="1.5" y="4" width="11" height="8" rx="1.4" opacity="0.7"></rect>
+  <rect x="0" y="7" width="11" height="8" rx="1.4"></rect>
+          </svg><span id="setting-count-text">--</span></span>
+        </div>
+      <div class="card-info-area">
+        <p id="setting-title">loading...</p>
+        <p id="setting-description">loading...</p>
+        <p id="setting-madeBy-p">作成者: <span id="setting-madeBy-name" class="clickable-user">loading...</span></p>
+      </div>
+      <div id="recruit-comment-area" class="recruit-comment-area hidden">
+        <p class="recruit-comment-label">募集コメント</p>
+        <p id="recruit-comment-text" class="recruit-comment-text"></p>
+      </div>
+      <label class="shuffle-toggle-row" id="shuffle-toggle-row">
+        <span>出題順をシャッフル</span>
+        <input type="checkbox" id="shuffle-problems-toggle">
+      </label>
+      <label class="shuffle-toggle-row hidden" id="flip-toggle-row">
+        <span>表と裏を逆転する</span>
+        <input type="checkbox" id="flip-cards-toggle">
+      </label>
+      <button id="recruit-start-open-button" class="view-impressions-button recruit-open-button hidden">みんなで解く</button>
+      <p id="join-disabled-text" class="join-disabled-text hidden">すでに開始済みのため、参加できません。</p>
+      <div class="buttons-area">
+        <button id="edit-button" class="hidden">編集</button>
+        <button id="join-button" class="hidden">参加する</button>
+        <button id="start-button">スタート</button>
+      </div>
+      <button id="view-impressions-button" class="view-impressions-button">感想を見る</button>
+      <button id="setting-modal-share-button" class="view-impressions-button">シェア</button>
+    </div>
+  </div>
+
+  <div id="recruit-start-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">みんなで解く</p>
+        <span id="recruit-start-modal-close" class="close-button">&times;</span>
+      </div>
+      <p class="recruit-modal-hint">参加者に向けた募集の一言コメントを設定してください。1問あたりの制限時間は、開始前に待機画面から設定できます。</p>
+      <label class="make-label" for="recruit-comment-input">募集コメント</label>
+      <textarea id="recruit-comment-input" rows="3" maxlength="100" placeholder="例: 今からみんなで解きましょう！"></textarea>
+      <button id="recruit-start-confirm-button" class="view-impressions-button recruit-confirm-button">募集を開始</button>
+    </div>
+  </div>
+
+  <div id="book-share-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">この問題集をシェア</p>
+        <span id="book-share-modal-close" class="close-button">&times;</span>
+      </div>
+      <img id="book-share-qr" src="" alt="QRコード" class="book-share-qr">
+      <p id="book-share-url" class="book-share-url"></p>
+    </div>
+  </div>
+
+  <div id="impressions-modal" class="modal-overlay top-sheet hidden">
+    <div class="modal-content top-sheet-content">
+      <div class="modal-header">
+        <p class="title">感想</p>
+        <span id="impressions-modal-close" class="close-button">&times;</span>
+      </div>
+      <div id="impressions-area"></div>
+    </div>
+  </div>
+
+  <div id="impression-edit-modal" class="modal-overlay top-sheet hidden">
+    <div class="modal-content top-sheet-content">
+      <div class="modal-header">
+        <p class="title">感想を編集</p>
+        <span id="impression-edit-modal-close" class="close-button">&times;</span>
+      </div>
+      <textarea id="impression-edit-input" rows="5" placeholder="この問題集の感想を書いてみましょう"></textarea>
+      <button id="impression-edit-save-button" class="impression-save-button">保存する</button>
+    </div>
+  </div>
+  
+  <div id="solved-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">解いた人</p>
+        <span id="solved-modal-close" class="close-button">&times;</span>
+      </div>
+      <div id="solved-area"></div>
+    </div>
+  </div>
+
+  <div id="user-list-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">ユーザー一覧</p>
+        <span id="user-list-modal-close" class="close-button">&times;</span>
+      </div>
+      <div id="user-list-area"></div>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">プロフィール</p>
+        <span id="profile-modal-close" class="close-button">&times;</span>
+      </div>
+      <div id="profile-area">
+        <div class="profile-avatar-wrap">
+          <div id="profile-avatar-holder"></div>
+          <input type="file" id="profile-avatar-input" accept="image/*" class="visually-hidden-input">
+          <button id="profile-avatar-remove-button" class="hidden">画像を削除</button>
+        </div>
+
+        <p id="profile-name">取得中...</p>
+        <input id="profile-name-input" class="hidden" type="text" placeholder="ユーザーネーム">
+
+        <p class="profile-label">ステータスメッセージ</p>
+        <div id="profile-text">取得中...</div>
+        <textarea id="profile-text-edit" class="hidden" placeholder="自己紹介を入力してください"></textarea>
+
+        <div class="profile-edit-button-row">
+          <button id="profile-cancel-button" class="hidden">キャンセル</button>
+          <button id="profile-edit-button" class="hidden">プロフィールを編集</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <div id="accountSettingsDrawer" class="drawer">
+    <div class="drawer-header">
+      <p>アカウント設定</p>
+      <span id="drawerCloseButton" class="drawer-close-button">&times;</span>
+    </div>
+    <div class="drawer-content">
+      <div class="drawer-section">
+        <p class="title">現在のユーザー</p>
+        <p>ID: <strong id="drawerUserId">取得中...</strong><span></span></p>
+        <p>ユーザーネーム: <strong id="drawerUsername">取得中...</strong></p>
+
+        <button id="drawer-edit-profile-button" class="normal-button" style="margin-bottom: 1rem;">プロフィールを編集</button>
+        <button id="drawer-user-list-button" class="normal-button hidden" style="margin-bottom: 1rem;">ユーザー一覧</button>
+        <button id="logout-button" class="logout-button normal-button">ログアウト</button>
+      </div>
+    </div>
+</div>
+  
+  
+  <header id="app-header">
+    <div id="title-area">
+      <p id="header-title">問題投稿</p>
+      <button id="share-modal-btn">シェア</button>
+    </div>
+    
+    <div id="user-data">
+     <!--<p id="header-username">取得中...</p>-->
+      <button id="setting-button">アカウント情報</button>
+    </div>
+  </header>
+  
+  
+  <main>
+    <div class="books-container">
+      <p class="title">問題集一覧</p>
+      <div class="narrow-down-area">
+        <div class="sort-order-area">
+          <select id="content-type-select">
+            <option value="books">問題集</option>
+            <option value="cards">暗記カード</option>
+          </select>
+        </div>
+        <div class="sort-order-area">
+          <select id="sort-order-select">
+            <option value="created">作成順</option>
+            <option value="updated">更新順</option>
+          </select>
+        </div>
+        <div class="filter-group">
+        <p>絞り込み</p>
+        <select id="subject-select">
+          <option value="all">すべての教科</option>
+          <option value="1">国語</option>
+          <option value="2">数学</option>
+          <option value="3">理科</option>
+          <option value="4">英語</option>
+          <option value="5">社会(歴史)</option>
+          <option value="6">社会(地理)</option>
+          <option value="7">社会(公民)</option>
+          <option value="8">保健体育(保健)</option>
+          <option value="9">保健体育(実技)</option>
+        </select>
+        <select id="grade-select">
+          <option value="all">すべての学年</option>
+          <option value="1">1年</option>
+          <option value="2">2年</option>
+          <option value="3">3年</option>
+          <option value="4">総合</option>
+        </select>
+        <select id="solved-filter-select">
+          <option value="all">すべての問題集</option>
+          <option value="unsolved">未解答</option>
+          <option value="solved">解答済み</option>
+        </select>
+        </div>
+      </div>
+      
+      <p id="loading-text">読み込み中...</p>
+      <div id="card-area" class="card-area hidden">
+      </div>
+    </div>
+  </main>
+  
+  
+  
+  <script type="module" src="appScript.js"></script>
+</html>

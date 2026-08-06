@@ -1,0 +1,116 @@
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>みんなで解く</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Signika+Negative:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="liveStyle.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+
+<body>
+  <div id="loading-overlay">
+    <h1>loading...</h1>
+    <p>読み込んでいます｡</p>
+  </div>
+
+  <div id="impression-modal" class="modal-overlay top-sheet hidden">
+    <div class="modal-content top-sheet-content">
+      <div class="modal-header">
+        <p class="title">感想を書く</p>
+        <span id="impression-modal-close" class="close-button">&times;</span>
+      </div>
+      <textarea id="impression-input" rows="5" placeholder="この問題集の感想を書いてみましょう"></textarea>
+      <button id="impression-save-button" class="live-next-button">保存する</button>
+    </div>
+  </div>
+
+  <header id="live-header">
+    <span class="live-header-badge participant-badge">LIVE</span>
+    <p id="host-title-text">loading...</p>
+  </header>
+
+  <main class="live-main">
+
+    <section id="phase-waiting" class="live-phase hidden">
+      <p class="live-phase-title">主催者の開始を待っています</p>
+      <p id="waiting-comment-text" class="waiting-comment-text"></p>
+      <div id="waiting-participants-list" class="participants-list"></div>
+      <button id="leave-waiting-button" class="live-secondary-button">参加を取り消す</button>
+    </section>
+
+    <section id="phase-countdown" class="live-phase hidden">
+      <p class="countdown-label">まもなく開始します</p>
+      <p id="countdown-number" class="countdown-number">3</p>
+    </section>
+
+    <section id="phase-question" class="live-phase hidden">
+      <div class="question-top-row">
+        <p id="question-index-text" class="question-index-text"></p>
+      </div>
+      <div class="timer-bar-track">
+        <div id="question-timer-bar" class="timer-bar-fill"></div>
+      </div>
+      <p id="question-timer-text" class="question-timer-text"></p>
+
+      <p id="answer-type-text" class="answer-type-text"></p>
+      <p id="problem-text" class="live-question-text"></p>
+      <img id="problem-image" class="live-question-image hidden" alt="問題の画像">
+      <div id="choices-area" class="choices-area"></div>
+      <input type="text" id="text-answer-input" class="text-answer-input hidden" placeholder="答えを入力してください" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <textarea id="descriptive-answer-input" class="descriptive-answer-input hidden" rows="5" placeholder="ここに解答を記述してください" autocorrect="off" spellcheck="false"></textarea>
+
+      <button id="submit-answer-button" class="live-next-button" disabled>回答する</button>
+    </section>
+
+    <section id="phase-waiting-result" class="live-phase hidden">
+      <p class="live-phase-title">回答を送信しました！</p>
+      <p class="waiting-result-hint">他の参加者の回答を待っています…</p>
+    </section>
+
+    <section id="phase-grading" class="live-phase hidden">
+      <p class="live-phase-title">採点中です</p>
+      <p class="waiting-result-hint">主催者がAIによる採点を行っています。しばらくお待ちください…</p>
+    </section>
+
+    <section id="phase-results" class="live-phase hidden">
+      <p class="live-phase-title">この問題の結果</p>
+      <p id="result-my-score-text" class="result-my-score-text hidden"></p>
+      <p id="result-waiting-hint" class="waiting-result-hint hidden">採点結果を待っています…</p>
+      <div id="result-correct-area" class="results-correct-area"></div>
+      <p class="leaderboard-heading">現在の順位</p>
+      <div id="result-leaderboard-area" class="leaderboard-area"></div>
+      <p class="waiting-result-hint">主催者が次の問題に進むのを待っています…</p>
+    </section>
+
+    <section id="phase-cancelled" class="live-phase hidden">
+      <p class="live-phase-title">募集が打ち切られました</p>
+      <p class="waiting-result-hint">主催者がこのセッションを終了しました。</p>
+      <button id="cancelled-home-button" class="live-next-button">ホームにもどる</button>
+    </section>
+
+    <section id="phase-finished" class="live-phase hidden">
+      <p class="live-phase-title finished-title">結果発表 🎉</p>
+      <p id="finished-my-rank-text" class="finished-my-rank-text"></p>
+      <div id="finished-leaderboard-area" class="leaderboard-area"></div>
+      <button id="write-impression-button" class="live-secondary-button">感想を書く</button>
+      <button id="finished-home-button" class="live-next-button">ホームにもどる</button>
+    </section>
+
+  </main>
+
+  <script src="liveAnswerScript.js"></script>
+</body>
+</html>

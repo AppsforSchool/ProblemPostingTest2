@@ -1,0 +1,109 @@
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>みんなで解く - 進行管理</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Signika+Negative:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="liveStyle.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+
+<body class="host-body">
+  <div id="loading-overlay">
+    <h1>loading...</h1>
+    <p>読み込んでいます｡</p>
+  </div>
+
+  <div id="no-permission-overlay" class="hidden">
+    <h1>アクセスできません</h1>
+    <p>この問題集の主催者のみアクセスできます。</p>
+    <a href="./app.html" class="live-next-button">ホームにもどる</a>
+  </div>
+
+  <header id="live-header">
+    <span class="live-header-badge">HOST</span>
+    <p id="host-title-text">loading...</p>
+  </header>
+
+  <main class="live-main">
+
+    <section id="phase-waiting" class="live-phase hidden">
+      <p class="live-phase-title">参加者を待っています</p>
+      <p class="waiting-count-text">参加者 <span id="waiting-participants-count">0</span> 人</p>
+
+      <label class="waiting-time-limit-label" for="waiting-time-limit-select">1問あたりの制限時間</label>
+      <select id="waiting-time-limit-select" class="waiting-time-limit-select">
+        <option value="5">5秒</option>
+        <option value="10">10秒</option>
+        <option value="20">20秒</option>
+        <option value="30">30秒</option>
+        <option value="60">60秒</option>
+        <option value="0">無制限</option>
+      </select>
+
+      <div id="waiting-participants-list" class="participants-list"></div>
+      <button id="start-session-button" class="live-next-button start-button-glow">スタート</button>
+      <button id="cancel-recruitment-button" class="live-secondary-button">募集を打ち切る</button>
+    </section>
+
+    <section id="phase-countdown" class="live-phase hidden">
+      <p class="countdown-label">まもなく開始します</p>
+      <p id="countdown-number" class="countdown-number">3</p>
+    </section>
+
+    <section id="phase-question" class="live-phase hidden">
+      <div class="question-top-row">
+        <p id="question-index-text" class="question-index-text"></p>
+        <p id="question-answered-count" class="question-answered-count"></p>
+      </div>
+      <div class="timer-bar-track">
+        <div id="question-timer-bar" class="timer-bar-fill"></div>
+      </div>
+      <p id="question-timer-text" class="question-timer-text"></p>
+
+      <p id="host-question-text" class="host-question-text"></p>
+      <img id="host-question-image" class="host-question-image hidden" alt="問題の画像">
+      <div id="host-choices-area" class="host-choices-area"></div>
+
+      <button id="cutoff-button" class="live-secondary-button">この問題の受付を締め切る</button>
+    </section>
+
+    <section id="phase-grading" class="live-phase hidden">
+      <p class="live-phase-title">記述式の採点</p>
+      <p id="grading-hint-text" class="grading-hint-text"></p>
+      <div id="grading-submissions-area" class="grading-submissions-area"></div>
+      <p id="grading-error-text" class="grading-error-text hidden"></p>
+      <button id="request-ai-grading-button" class="live-next-button">AIに一括採点を依頼</button>
+    </section>
+
+    <section id="phase-results" class="live-phase hidden">
+      <p class="live-phase-title">この問題の結果</p>
+      <div id="results-correct-area" class="results-correct-area"></div>
+      <p class="leaderboard-heading">現在の順位</p>
+      <div id="results-leaderboard-area" class="leaderboard-area"></div>
+      <button id="next-question-button" class="live-next-button">次の問題へ</button>
+    </section>
+
+    <section id="phase-finished" class="live-phase hidden">
+      <p class="live-phase-title finished-title">結果発表 🎉</p>
+      <div id="finished-leaderboard-area" class="leaderboard-area"></div>
+      <button id="finished-home-button" class="live-next-button">問題集一覧にもどる</button>
+    </section>
+
+  </main>
+
+  <script src="liveHostScript.js"></script>
+</body>
+</html>
