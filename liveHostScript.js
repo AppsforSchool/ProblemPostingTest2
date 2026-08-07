@@ -119,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
       attachSessionListener();
     } catch (error) {
       console.error(error);
+      loadingOverlay.classList.add("hidden");
       alert("読み込みに失敗しました。\n" + error);
     }
   });
@@ -180,12 +181,20 @@ function preloadProblemImages() {
 
 function attachSessionListener() {
   sessionRef = rtdb.ref(`liveSessions/${bookId}`);
-  sessionRef.on("value", snap => {
-    sessionData = snap.val();
-    loadingOverlay.classList.add("hidden");
-    if (!sessionData) return;
-    render();
-  });
+  sessionRef.on(
+    "value",
+    snap => {
+      sessionData = snap.val();
+      loadingOverlay.classList.add("hidden");
+      if (!sessionData) return;
+      render();
+    },
+    error => {
+      console.error("セッション情報の取得に失敗しました:", error);
+      loadingOverlay.classList.add("hidden");
+      alert("セッション情報の取得に失敗しました。権限設定をご確認ください。\n" + error.message);
+    }
+  );
 }
 
 function setPhase(phase) {

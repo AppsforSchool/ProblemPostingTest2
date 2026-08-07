@@ -655,6 +655,9 @@ body {
 .buttons-area #edit-button.hidden + #start-button {
   width: 100%;
 }
+.buttons-area .full-width-button {
+  width: 100% !important;
+}
 
 .view-impressions-button {
   font-family: "BIZ UDGothic", sans-serif;

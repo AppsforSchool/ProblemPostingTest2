@@ -775,6 +775,7 @@ document.addEventListener("DOMContentLoaded", () => {
     joinButton.classList.remove("leave-mode");
     joinDisabledText.classList.add("hidden");
     settingModalStartButton.classList.remove("hidden");
+    settingModalStartButton.classList.remove("full-width-button");
     settingModalStartButton.textContent = "スタート";
     shuffleToggleRow.classList.remove("hidden");
   });
@@ -918,6 +919,7 @@ function setSettingModalMode(mode) {
   joinButton.classList.remove("leave-mode");
   joinDisabledText.classList.add("hidden");
   settingModalStartButton.classList.remove("hidden");
+  settingModalStartButton.classList.remove("full-width-button");
   settingModalStartButton.textContent = "スタート";
 }
 
@@ -964,6 +966,7 @@ async function applyRecruitModeToSettingModal(id) {
   joinButton.classList.remove("leave-mode");
   joinDisabledText.classList.add("hidden");
   settingModalStartButton.classList.remove("hidden");
+  settingModalStartButton.classList.remove("full-width-button");
   settingModalStartButton.textContent = "スタート";
   shuffleToggleRow.classList.remove("hidden");
 
@@ -979,6 +982,7 @@ async function applyRecruitModeToSettingModal(id) {
     if (isMaker) {
       // 主催者: 待機画面(進行管理)へ
       settingModalStartButton.classList.remove("hidden");
+      settingModalStartButton.classList.add("full-width-button");
       settingModalStartButton.textContent = "待機画面へ";
       joinButton.classList.add("hidden");
     } else {
