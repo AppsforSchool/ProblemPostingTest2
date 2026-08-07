@@ -431,6 +431,9 @@ body {
   text-decoration: none;
   cursor: pointer;
 }
+.modal-content .close-button.hidden {
+  display: none;
+}
 .modal-content img {
   max-width: 100%;
   max-height: 80vh;

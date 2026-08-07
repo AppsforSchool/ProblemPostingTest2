@@ -108,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
   requestAiGradingButton.addEventListener("click", requestAiGrading);
   nextQuestionButton.addEventListener("click", handleNextButton);
   finishedHomeButton.addEventListener("click", finishAndGoHome);
+  document.getElementById("test-reset-session-button").addEventListener("click", resetSessionForTesting);
 
   rtdb.ref(".info/serverTimeOffset").on("value", snap => {
     serverTimeOffset = snap.val() || 0;
@@ -816,4 +817,30 @@ async function finishAndGoHome() {
     console.error("募集終了の更新に失敗しました:", error);
   }
   window.location.href = "./app.html";
+}
+
+// ★ テスト用: Firestore側(isRecruiting/recruitParticipants等)には一切触れず、
+//   RTDBのセッションだけを初期状態に戻して同じ問題集をもう一度最初から解けるようにする
+async function resetSessionForTesting() {
+  if (!confirm("募集状態はそのままで、セッション（参加者・回答・スコア）だけリセットして最初からやり直しますか？")) return;
+  try {
+    await sessionRef.set({
+      hostUserId: myUserId,
+      status: "waiting",
+      timeLimitSeconds: sessionData.timeLimitSeconds || 10,
+      totalQuestions: problemsData.length,
+      recruitComment: sessionData.recruitComment || "",
+      currentQuestionIndex: -1,
+      currentQuestion: null,
+      currentAnswerKey: null,
+      locked: false,
+      participants: {},
+      answers: {},
+      totalScores: {},
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    });
+  } catch (error) {
+    console.error("セッションのリセットに失敗しました:", error);
+    alert("セッションのリセットに失敗しました。");
+  }
 }
