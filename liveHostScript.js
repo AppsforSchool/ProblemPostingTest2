@@ -460,7 +460,7 @@ async function startSession() {
 
 function runLocalCountdown(onDone) {
   let count = 3;
-  countdownNumberEl.textContent = count;
+  showCountdownNumber(count);
   clearInterval(countdownIntervalHandle);
   countdownIntervalHandle = setInterval(() => {
     count -= 1;
@@ -468,9 +468,17 @@ function runLocalCountdown(onDone) {
       clearInterval(countdownIntervalHandle);
       onDone();
     } else {
-      countdownNumberEl.textContent = count;
+      showCountdownNumber(count);
     }
   }, 1000);
+}
+
+// ★ クラスを一度外して付け直すことで、切り替わるたびにポップイン(最大サイズ)から演出をやり直す
+function showCountdownNumber(count) {
+  countdownNumberEl.textContent = count;
+  countdownNumberEl.classList.remove("pop");
+  void countdownNumberEl.offsetWidth;
+  countdownNumberEl.classList.add("pop");
 }
 
 async function beginQuestion(index) {

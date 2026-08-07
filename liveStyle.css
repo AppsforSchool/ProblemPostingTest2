@@ -231,18 +231,42 @@ body {
 .live-secondary-button:hover:not(:disabled) { background: var(--border); }
 .live-secondary-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ---- countdown ---- */
-.countdown-label { font-size: 1rem; color: var(--text-muted); font-weight: 700; }
-.countdown-number {
-  font-size: 6rem;
+/* ---- countdown (画面全体を使った演出) ---- */
+#phase-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  border-radius: 0;
+  box-shadow: none;
+  background: radial-gradient(circle at center, rgba(var(--accent-rgb), 0.28), rgba(8, 6, 20, 0.97) 70%);
+  justify-content: center;
+  gap: 0.5rem;
+}
+.countdown-label {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.75);
   font-weight: 700;
-  color: var(--primary);
-  animation: countdown-pop 1s var(--ease) infinite;
+  letter-spacing: 0.04em;
+}
+.countdown-number {
+  font-size: clamp(9rem, 48vw, 18rem);
+  line-height: 1;
+  font-weight: 700;
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 30px rgba(var(--primary-rgb), 0.55));
+}
+/* ★ JS側でカウントが変わるたびにこのクラスを一度外して付け直し、アニメーションを頭から再生する。
+   数字は「変わった瞬間が最大サイズ」になり、その後すっと収縮するので、切り替わりが一番目立つ瞬間と一致する */
+.countdown-number.pop {
+  animation: countdown-pop 1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes countdown-pop {
-  0% { transform: scale(0.6); opacity: 0; }
-  30% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: scale(1.55); opacity: 1; }
+  45% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.88); opacity: 0.5; }
 }
 
 /* ---- question ---- */
