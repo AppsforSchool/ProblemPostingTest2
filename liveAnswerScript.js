@@ -4,13 +4,29 @@ const firebaseConfig = {
   projectId: "appsforschool-study",
   storageBucket: "appsforschool-study.firebasestorage.app",
   messagingSenderId: "740735293440",
-  appId: "1:740735293440:web:a1363adbab57f1ceec60e5"
+  appId: "1:740735293440:web:a1363adbab57f1ceec60e5",
+  // ★ Realtime Databaseを使うために追加。Firebaseコンソール > Realtime Database の画面上部に
+  //   表示されているURLに書き換えてください（例: "https://appsforschool-study-default-rtdb.asia-southeast1.firebasedatabase.app"）
+  databaseURL: "https://appsforschool-study-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const rtdb = firebase.database();
+
+// ★ iPadなどコンソールが見られない環境向けに、想定外のエラーをアラートで表示する
+window.addEventListener("error", event => {
+  const message = (event.error && event.error.message) || event.message || "不明なエラー";
+  console.error("Uncaught error:", event.error || event.message);
+  alert("予期しないエラーが発生しました:\n" + message);
+});
+window.addEventListener("unhandledrejection", event => {
+  const reason = event.reason;
+  const message = (reason && reason.message) || String(reason);
+  console.error("Unhandled promise rejection:", reason);
+  alert("予期しないエラーが発生しました:\n" + message);
+});
 
 let myUserId = "";
 let myUserName = "";

@@ -4,7 +4,10 @@ const firebaseConfig = {
   projectId: "appsforschool-study",
   storageBucket: "appsforschool-study.firebasestorage.app",
   messagingSenderId: "740735293440",
-  appId: "1:740735293440:web:a1363adbab57f1ceec60e5"
+  appId: "1:740735293440:web:a1363adbab57f1ceec60e5",
+  // ★ Realtime Databaseを使うために追加。Firebaseコンソール > Realtime Database の画面上部に
+  //   表示されているURLに書き換えてください（例: "https://appsforschool-study-default-rtdb.asia-southeast1.firebasedatabase.app"）
+  databaseURL: "https://appsforschool-study-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // Firebase 初期化とサービス取得
@@ -13,6 +16,19 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const rtdb = firebase.database();
 const DEFAULT_RECRUIT_TIME_LIMIT_SECONDS = 10; // ★ 初期値。主催者は待機画面(liveHost.html)で変更できる
+
+// ★ iPadなどコンソールが見られない環境向けに、想定外のエラーをアラートで表示する
+window.addEventListener("error", event => {
+  const message = (event.error && event.error.message) || event.message || "不明なエラー";
+  console.error("Uncaught error:", event.error || event.message);
+  alert("予期しないエラーが発生しました:\n" + message);
+});
+window.addEventListener("unhandledrejection", event => {
+  const reason = event.reason;
+  const message = (reason && reason.message) || String(reason);
+  console.error("Unhandled promise rejection:", reason);
+  alert("予期しないエラーが発生しました:\n" + message);
+});
 
 const STACK_ICON_SVG = `<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
   <rect x="3" y="1" width="11" height="8" rx="1.4" opacity="0.45"></rect>
