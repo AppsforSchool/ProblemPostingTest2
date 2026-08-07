@@ -808,15 +808,20 @@ async function cancelRecruitment() {
 }
 
 async function finishAndGoHome() {
+  finishedHomeButton.disabled = true;
+  finishedHomeButton.textContent = "処理中...";
   try {
     await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).update({
       isRecruiting: false,
       recruitParticipants: []
     });
+    window.location.href = "./app.html";
   } catch (error) {
     console.error("募集終了の更新に失敗しました:", error);
+    alert("募集状態の解除に失敗しました。もう一度お試しください。\n" + error.message);
+    finishedHomeButton.disabled = false;
+    finishedHomeButton.textContent = "問題集一覧にもどる";
   }
-  window.location.href = "./app.html";
 }
 
 // ★ テスト用: Firestore側(isRecruiting/recruitParticipants等)には一切触れず、

@@ -98,6 +98,21 @@ body {
 }
 .live-header-badge.participant-badge {
   background: linear-gradient(120deg, var(--accent), var(--primary));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.live-header-badge.participant-badge::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #fff;
+  animation: live-dot-pulse 1.4s ease-in-out infinite;
+}
+@keyframes live-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.6); }
 }
 #live-header p {
   font-weight: 700;
