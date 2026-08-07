@@ -267,7 +267,11 @@ function attachSessionListener() {
     snap => {
       sessionData = snap.val();
       loadingOverlay.classList.add("hidden");
-      if (!sessionData) return;
+      if (!sessionData) {
+        showCancelledMessage("セッション情報が見つかりません", "主催者側で募集がリセットされた可能性があります。");
+        setPhase(phaseCancelled);
+        return;
+      }
       render();
     },
     error => {
@@ -276,6 +280,13 @@ function attachSessionListener() {
       alert("セッション情報の取得に失敗しました。権限設定をご確認ください。\n" + error.message);
     }
   );
+}
+
+function showCancelledMessage(title, hint) {
+  const cancelledTitle = document.querySelector("#phase-cancelled .live-phase-title");
+  const cancelledHint = document.querySelector("#phase-cancelled .waiting-result-hint");
+  if (cancelledTitle) cancelledTitle.textContent = title;
+  if (cancelledHint) cancelledHint.textContent = hint;
 }
 
 function setPhase(phase) {

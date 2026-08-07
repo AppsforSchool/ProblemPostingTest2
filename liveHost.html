@@ -39,6 +39,12 @@
 
   <main class="live-main">
 
+    <section id="phase-session-missing" class="live-phase hidden">
+      <p class="live-phase-title">セッション情報が見つかりません</p>
+      <p class="waiting-result-hint">募集を開始した際にライブ用のデータが作成されていなかった可能性があります。募集状態をリセットして、もう一度「みんなで解く」からやり直してください。</p>
+      <button id="reset-session-button" class="live-next-button">募集をリセットしてホームにもどる</button>
+    </section>
+
     <section id="phase-waiting" class="live-phase hidden">
       <p class="live-phase-title">参加者を待っています</p>
       <p class="waiting-count-text">参加者 <span id="waiting-participants-count">0</span> 人</p>

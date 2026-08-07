@@ -49,7 +49,7 @@ let loadingStatusText;
 let noPermissionOverlay;
 let hostTitleText;
 
-let phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished;
+let phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseSessionMissing;
 
 let waitingParticipantsList, waitingParticipantsCount, waitingTimeLimitSelect, startSessionButton, cancelRecruitmentButton;
 let countdownNumberEl;
@@ -70,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   phaseGrading = document.getElementById("phase-grading");
   phaseResults = document.getElementById("phase-results");
   phaseFinished = document.getElementById("phase-finished");
+  phaseSessionMissing = document.getElementById("phase-session-missing");
 
   waitingParticipantsList = document.getElementById("waiting-participants-list");
   waitingParticipantsCount = document.getElementById("waiting-participants-count");
@@ -101,6 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
   finishedHomeButton = document.getElementById("finished-home-button");
 
   startSessionButton.addEventListener("click", startSession);
+  document.getElementById("reset-session-button").addEventListener("click", resetBrokenSessionAndGoHome);
   cancelRecruitmentButton.addEventListener("click", cancelRecruitment);
   cutoffButton.addEventListener("click", () => lockQuestion());
   requestAiGradingButton.addEventListener("click", requestAiGrading);
@@ -217,7 +219,10 @@ function attachSessionListener() {
     snap => {
       sessionData = snap.val();
       loadingOverlay.classList.add("hidden");
-      if (!sessionData) return;
+      if (!sessionData) {
+        setPhase(phaseSessionMissing);
+        return;
+      }
       render();
     },
     error => {
@@ -229,10 +234,22 @@ function attachSessionListener() {
 }
 
 function setPhase(phase) {
-  [phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished].forEach(el =>
-    el.classList.add("hidden")
+  [phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseSessionMissing].forEach(
+    el => el.classList.add("hidden")
   );
   phase.classList.remove("hidden");
+}
+
+async function resetBrokenSessionAndGoHome() {
+  try {
+    await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).update({
+      isRecruiting: false,
+      recruitParticipants: []
+    });
+  } catch (error) {
+    console.error("募集状態のリセットに失敗しました:", error);
+  }
+  window.location.href = "./app.html";
 }
 
 function render() {
