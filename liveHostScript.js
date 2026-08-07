@@ -57,6 +57,13 @@ let questionIndexText, questionText, questionImage, questionChoicesArea, questio
 let gradingHintText, gradingSubmissionsArea, requestAiGradingButton, gradingErrorText;
 let resultsCorrectArea, resultsLeaderboardArea, nextQuestionButton;
 let finishedLeaderboardArea, finishedHomeButton;
+let audioMuteButton;
+let bgmStarted = false;
+let lastRenderedStatus = null;
+
+function updateAudioMuteButtonLabel() {
+  audioMuteButton.textContent = LiveAudio.isMuted() ? "🔇" : "🔊";
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   loadingOverlay = document.getElementById("loading-overlay");
@@ -109,6 +116,13 @@ document.addEventListener("DOMContentLoaded", () => {
   nextQuestionButton.addEventListener("click", handleNextButton);
   finishedHomeButton.addEventListener("click", finishAndGoHome);
   document.getElementById("test-reset-session-button").addEventListener("click", resetSessionForTesting);
+
+  audioMuteButton = document.getElementById("audio-mute-button");
+  updateAudioMuteButtonLabel();
+  audioMuteButton.addEventListener("click", () => {
+    LiveAudio.toggleMuted();
+    updateAudioMuteButtonLabel();
+  });
 
   rtdb.ref(".info/serverTimeOffset").on("value", snap => {
     serverTimeOffset = snap.val() || 0;
@@ -258,6 +272,14 @@ function render() {
   const participants = sessionData.participants || {};
   const participantIds = Object.keys(participants);
 
+  if (!bgmStarted && status !== "cancelled" && status !== "finished") {
+    bgmStarted = true;
+    LiveAudio.startBgm();
+  }
+
+  const statusChanged = status !== lastRenderedStatus;
+  lastRenderedStatus = status;
+
   if (status === "waiting") {
     setPhase(phaseWaiting);
     waitingParticipantsCount.textContent = participantIds.length;
@@ -276,17 +298,25 @@ function render() {
     // カウントダウン表示自体はstartSession側のローカルタイマーで駆動
   } else if (status === "question") {
     setPhase(phaseQuestion);
+    if (statusChanged) LiveAudio.playQuestionStart();
     renderQuestionPhase();
   } else if (status === "grading") {
     setPhase(phaseGrading);
     renderGradingPhase();
   } else if (status === "results") {
     setPhase(phaseResults);
+    if (statusChanged) LiveAudio.playReveal();
     renderResultsPhase();
   } else if (status === "finished") {
     setPhase(phaseFinished);
+    if (statusChanged) {
+      LiveAudio.stopBgm();
+      bgmStarted = false;
+      LiveAudio.playFanfare();
+    }
     renderFinishedPhase();
   } else if (status === "cancelled") {
+    LiveAudio.stopBgm();
     window.location.href = "./app.html";
   }
 }
@@ -480,6 +510,7 @@ function showCountdownNumber(count) {
   countdownNumberEl.classList.remove("pop");
   void countdownNumberEl.offsetWidth;
   countdownNumberEl.classList.add("pop");
+  LiveAudio.playCountdownTick(count === 1);
 }
 
 async function beginQuestion(index) {
@@ -528,6 +559,7 @@ function startTimerRefreshLoop() {
 async function lockQuestion() {
   if (!sessionData || sessionData.status !== "question" || sessionData.locked) return;
   clearTimeout(questionTimeoutHandle);
+  LiveAudio.playLock();
   await sessionRef.update({ locked: true });
 
   const index = sessionData.currentQuestionIndex;

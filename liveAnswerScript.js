@@ -55,6 +55,13 @@ let resultMyScoreText, resultCorrectArea, resultLeaderboardArea, resultWaitingHi
 let finishedMyRankText, finishedLeaderboardArea, writeImpressionButton, finishedHomeButton;
 
 let impressionModal, impressionModalClose, impressionInput, impressionSaveButton;
+let audioMuteButton;
+let bgmStarted = false;
+let lastRenderedStatus = null;
+
+function updateAudioMuteButtonLabel() {
+  audioMuteButton.textContent = LiveAudio.isMuted() ? "🔇" : "🔊";
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   loadingOverlay = document.getElementById("loading-overlay");
@@ -101,6 +108,13 @@ document.addEventListener("DOMContentLoaded", () => {
   impressionModalClose = document.getElementById("impression-modal-close");
   impressionInput = document.getElementById("impression-input");
   impressionSaveButton = document.getElementById("impression-save-button");
+
+  audioMuteButton = document.getElementById("audio-mute-button");
+  updateAudioMuteButtonLabel();
+  audioMuteButton.addEventListener("click", () => {
+    LiveAudio.toggleMuted();
+    updateAudioMuteButtonLabel();
+  });
 
   leaveWaitingButton.addEventListener("click", leaveSession);
   textAnswerInput.addEventListener("input", updateSubmitButtonState);
@@ -299,6 +313,14 @@ function setPhase(phase) {
 function render() {
   const status = sessionData.status;
 
+  if (!bgmStarted && status !== "cancelled" && status !== "finished") {
+    bgmStarted = true;
+    LiveAudio.startBgm();
+  }
+
+  const statusChanged = status !== lastRenderedStatus;
+  lastRenderedStatus = status;
+
   if (status === "waiting") {
     setPhase(phaseWaiting);
     renderWaitingPhase();
@@ -308,6 +330,7 @@ function render() {
   } else if (status === "question") {
     const index = sessionData.currentQuestionIndex;
     const myAnswer = sessionData.answers && sessionData.answers[index] && sessionData.answers[index][myUserId];
+    if (statusChanged) LiveAudio.playQuestionStart();
     if (myAnswer) {
       setPhase(phaseWaitingResult);
     } else {
@@ -318,11 +341,26 @@ function render() {
     setPhase(phaseGrading);
   } else if (status === "results") {
     setPhase(phaseResults);
+    if (statusChanged) {
+      const index = sessionData.currentQuestionIndex;
+      const myAnswer = sessionData.answers && sessionData.answers[index] && sessionData.answers[index][myUserId];
+      if (myAnswer && myAnswer.correct) {
+        LiveAudio.playCorrect();
+      } else {
+        LiveAudio.playIncorrect();
+      }
+    }
     renderResultsPhase();
   } else if (status === "finished") {
     setPhase(phaseFinished);
+    if (statusChanged) {
+      LiveAudio.stopBgm();
+      bgmStarted = false;
+      LiveAudio.playFanfare();
+    }
     renderFinishedPhase();
   } else if (status === "cancelled") {
+    LiveAudio.stopBgm();
     setPhase(phaseCancelled);
   }
 }
@@ -362,6 +400,7 @@ function showCountdownNumber(count) {
   countdownNumberEl.classList.remove("pop");
   void countdownNumberEl.offsetWidth;
   countdownNumberEl.classList.add("pop");
+  LiveAudio.playCountdownTick(count === 1);
 }
 
 function renderQuestionPhase() {
