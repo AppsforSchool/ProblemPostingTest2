@@ -798,6 +798,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   recruitStartOpenButton.addEventListener("click", () => {
     recruitCommentInput.value = "";
+    recruitStartConfirmButton.disabled = false;
+    recruitStartConfirmButton.textContent = "募集を開始";
+    recruitStartModalClose.classList.remove("hidden");
     recruitStartModal.classList.remove("hidden");
   });
   recruitStartModalClose.addEventListener("click", () => {
@@ -808,7 +811,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!bookId || !bookCache[bookId]) return;
     const comment = recruitCommentInput.value.trim();
     const timeLimitSeconds = DEFAULT_RECRUIT_TIME_LIMIT_SECONDS; // ★ 待機画面(liveHost.html)側で主催者が変更可能
+
     recruitStartConfirmButton.disabled = true;
+    recruitStartConfirmButton.textContent = "セッションを作成中…";
+    recruitStartModalClose.classList.add("hidden");
     try {
       await db
         .collection("ProblemPosting")
@@ -847,6 +853,8 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("募集の開始に失敗しました。");
     } finally {
       recruitStartConfirmButton.disabled = false;
+      recruitStartConfirmButton.textContent = "募集を開始";
+      recruitStartModalClose.classList.remove("hidden");
     }
   });
 
