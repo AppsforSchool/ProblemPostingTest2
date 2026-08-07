@@ -280,6 +280,9 @@ body {
   background: radial-gradient(circle at center, rgba(var(--accent-rgb), 0.28), rgba(8, 6, 20, 0.97) 70%);
   justify-content: center;
   gap: 0.5rem;
+  /* ★ 全画面に backdrop-filter を掛けると非常に重いので、カウントダウン中は無効化する */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .countdown-label {
   font-size: 1.1rem;
@@ -295,7 +298,8 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 30px rgba(var(--primary-rgb), 0.55));
+  /* ★ filter: drop-shadow は拡大縮小のたびにぼかしを再計算するため重い。will-changeでレイヤー化のみ行う */
+  will-change: transform, opacity;
 }
 /* ★ JS側でカウントが変わるたびにこのクラスを一度外して付け直し、アニメーションを頭から再生する。
    数字は「変わった瞬間が最大サイズ」になり、その後すっと収縮するので、切り替わりが一番目立つ瞬間と一致する */
@@ -303,9 +307,9 @@ body {
   animation: countdown-pop 1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes countdown-pop {
-  0% { transform: scale(1.55); opacity: 1; }
+  0% { transform: scale(1.4); opacity: 1; }
   45% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.88); opacity: 0.5; }
+  100% { transform: scale(0.9); opacity: 0.6; }
 }
 
 /* ---- question ---- */

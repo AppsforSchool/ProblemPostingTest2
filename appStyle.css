@@ -576,6 +576,9 @@ body {
 .private-badge.recruiting-badge {
   background: var(--primary);
 }
+.private-badge.started-badge {
+  background: var(--text-muted);
+}
 
 .shuffle-toggle-row {
   display: flex;

@@ -814,11 +814,28 @@ function handleNextButton() {
   const isLast = index >= problemsData.length - 1;
   if (isLast) {
     sessionRef.update({ status: "finished" });
+    // ★ 結果発表に移行した時点で、募集中の状態を解除する(本番仕様)
+    endRecruiting();
   } else {
     nextQuestionButton.disabled = true;
     beginQuestion(index + 1).finally(() => {
       nextQuestionButton.disabled = false;
     });
+  }
+}
+
+// ★ Firestore側の募集中フラグを解除する。結果発表への遷移時と「問題集一覧にもどる」の両方から
+//   呼ばれる可能性があるため、何度呼んでも問題ない(冪等)処理にしてある
+async function endRecruiting() {
+  try {
+    await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).update({
+      isRecruiting: false,
+      recruitParticipants: []
+    });
+    return true;
+  } catch (error) {
+    console.error("募集終了の更新に失敗しました:", error);
+    return false;
   }
 }
 
@@ -842,15 +859,11 @@ async function cancelRecruitment() {
 async function finishAndGoHome() {
   finishedHomeButton.disabled = true;
   finishedHomeButton.textContent = "処理中...";
-  try {
-    await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).update({
-      isRecruiting: false,
-      recruitParticipants: []
-    });
+  const ok = await endRecruiting();
+  if (ok) {
     window.location.href = "./app.html";
-  } catch (error) {
-    console.error("募集終了の更新に失敗しました:", error);
-    alert("募集状態の解除に失敗しました。もう一度お試しください。\n" + error.message);
+  } else {
+    alert("募集状態の解除に失敗しました。もう一度お試しください。");
     finishedHomeButton.disabled = false;
     finishedHomeButton.textContent = "問題集一覧にもどる";
   }

@@ -423,6 +423,22 @@ function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter) {
       if (isRecruiting) privateBadge.classList.add("recruiting-badge");
       privateBadge.textContent = isRecruiting ? "募集中" : "非公開";
       card.appendChild(privateBadge);
+
+      // ★ 募集中の問題集は、実際にライブセッションが開始済み(waiting以外)かどうかをRTDBで確認し、
+      //   開始済みなら「開始済み」表示に切り替える(参加できないことが一覧の時点でわかるように)
+      if (isRecruiting) {
+        rtdb
+          .ref(`liveSessions/${bookId}/status`)
+          .get()
+          .then(statusSnap => {
+            const status = statusSnap.exists() ? statusSnap.val() : "waiting";
+            if (status && status !== "waiting" && status !== "cancelled" && status !== "finished") {
+              privateBadge.textContent = "開始済み";
+              privateBadge.classList.add("started-badge");
+            }
+          })
+          .catch(error => console.error("セッション状態の確認に失敗しました:", error));
+      }
     }
       
     const cardTop = document.createElement("div");
