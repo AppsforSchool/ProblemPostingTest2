@@ -26,6 +26,7 @@ let timerRefreshHandle = null;
 let problemsData = []; // [problem, choices, answer, explanation, imageUrl, answerType, shuffleChoices, modelAnswer, gradingCriteria]
 
 let loadingOverlay;
+let loadingStatusText;
 let liveHeaderTitle;
 
 let phaseWaiting, phaseCountdown, phaseQuestion, phaseWaitingResult, phaseGrading, phaseResults, phaseFinished, phaseCancelled;
@@ -41,6 +42,7 @@ let impressionModal, impressionModalClose, impressionInput, impressionSaveButton
 
 document.addEventListener("DOMContentLoaded", () => {
   loadingOverlay = document.getElementById("loading-overlay");
+  loadingStatusText = document.getElementById("loading-status-text");
   liveHeaderTitle = document.getElementById("host-title-text");
 
   phaseWaiting = document.getElementById("phase-waiting");
@@ -117,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
+      loadingStatusText.textContent = "ユーザー情報を確認しています｡";
       const userSnap = await db.collection("users_random").doc(myUserId).get();
       myUserName = (userSnap.exists && userSnap.data().name) || myUserId;
 
@@ -125,8 +128,11 @@ document.addEventListener("DOMContentLoaded", () => {
         liveHeaderTitle.textContent = bookDoc.data().title || "";
       }
 
+      loadingStatusText.textContent = "問題を読み込んでいます｡";
       await Promise.all([ensureJoined(), loadProblems()]);
-      preloadProblemImages();
+      loadingStatusText.textContent = "画像を読み込んでいます｡";
+      await preloadProblemImages();
+      loadingStatusText.textContent = "進行状況に接続しています｡";
       attachSessionListener();
     } catch (error) {
       if (error && error.message === "ALREADY_STARTED") return;
@@ -221,13 +227,21 @@ async function loadProblems() {
 }
 
 function preloadProblemImages() {
-  problemsData.forEach(problem => {
-    const imageUrl = problem[4];
-    if (imageUrl) {
-      const img = new Image();
-      img.src = imageUrl;
-    }
-  });
+  const urls = problemsData.map(problem => problem[4]).filter(Boolean);
+  if (urls.length === 0) return Promise.resolve();
+
+  return Promise.all(
+    urls.map(
+      url =>
+        new Promise(resolve => {
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = resolve; // 画像取得に失敗しても全体の読み込みは止めない
+          img.src = url;
+          setTimeout(resolve, 8000);
+        })
+    )
+  );
 }
 
 function attachSessionListener() {

@@ -29,6 +29,7 @@ let questionTimeoutHandle = null;
 let countdownIntervalHandle = null;
 
 let loadingOverlay;
+let loadingStatusText;
 let noPermissionOverlay;
 let hostTitleText;
 
@@ -43,6 +44,7 @@ let finishedLeaderboardArea, finishedHomeButton;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadingOverlay = document.getElementById("loading-overlay");
+  loadingStatusText = document.getElementById("loading-status-text");
   noPermissionOverlay = document.getElementById("no-permission-overlay");
   hostTitleText = document.getElementById("host-title-text");
 
@@ -108,14 +110,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
+      loadingStatusText.textContent = "問題集の情報を確認しています｡";
       const ok = await loadBookAndVerifyHost();
       if (!ok) {
         loadingOverlay.classList.add("hidden");
         noPermissionOverlay.classList.remove("hidden");
         return;
       }
+      loadingStatusText.textContent = "問題を読み込んでいます｡";
       await loadProblems();
-      preloadProblemImages();
+      loadingStatusText.textContent = "画像を読み込んでいます｡";
+      await preloadProblemImages();
+      loadingStatusText.textContent = "進行状況に接続しています｡";
       attachSessionListener();
     } catch (error) {
       console.error(error);
@@ -170,13 +176,22 @@ async function loadProblems() {
 
 // ★ 問題の画像をあらかじめブラウザにキャッシュさせておく（出題時の表示待ちを防ぐ）
 function preloadProblemImages() {
-  problemsData.forEach(problem => {
-    const imageUrl = problem[4];
-    if (imageUrl) {
-      const img = new Image();
-      img.src = imageUrl;
-    }
-  });
+  const urls = problemsData.map(problem => problem[4]).filter(Boolean);
+  if (urls.length === 0) return Promise.resolve();
+
+  return Promise.all(
+    urls.map(
+      url =>
+        new Promise(resolve => {
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = resolve; // 画像取得に失敗しても全体の読み込みは止めない
+          img.src = url;
+          // 念のためのタイムアウト（回線が遅い場合などに読み込みを止めない）
+          setTimeout(resolve, 8000);
+        })
+    )
+  );
 }
 
 function attachSessionListener() {
