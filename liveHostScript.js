@@ -255,15 +255,9 @@ function setPhase(phase) {
   phase.classList.remove("hidden");
 }
 
-async function resetBrokenSessionAndGoHome() {
-  try {
-    await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).update({
-      isRecruiting: false,
-      recruitParticipants: []
-    });
-  } catch (error) {
-    console.error("募集状態のリセットに失敗しました:", error);
-  }
+function resetBrokenSessionAndGoHome() {
+  // ★ 募集状態はFirestoreではなくRTDBのliveSessionsのみで管理しているため、
+  //   セッションが無い(壊れている)場合は特に何も消さずホームへ戻ればよい
   window.location.href = "./app.html";
 }
 
@@ -813,9 +807,8 @@ function handleNextButton() {
   const index = sessionData.currentQuestionIndex;
   const isLast = index >= problemsData.length - 1;
   if (isLast) {
+    // ★ status を "finished" にした時点で、募集中の判定(appScript.js側)は自動的に外れる
     sessionRef.update({ status: "finished" });
-    // ★ 結果発表に移行した時点で、募集中の状態を解除する(本番仕様)
-    endRecruiting();
   } else {
     nextQuestionButton.disabled = true;
     beginQuestion(index + 1).finally(() => {
@@ -824,30 +817,11 @@ function handleNextButton() {
   }
 }
 
-// ★ Firestore側の募集中フラグを解除する。結果発表への遷移時と「問題集一覧にもどる」の両方から
-//   呼ばれる可能性があるため、何度呼んでも問題ない(冪等)処理にしてある
-async function endRecruiting() {
-  try {
-    await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).update({
-      isRecruiting: false,
-      recruitParticipants: []
-    });
-    return true;
-  } catch (error) {
-    console.error("募集終了の更新に失敗しました:", error);
-    return false;
-  }
-}
-
 async function cancelRecruitment() {
   if (!confirm("募集を打ち切りますか？参加者は待機画面から締め出されます。")) return;
   cancelRecruitmentButton.disabled = true;
   try {
     await sessionRef.update({ status: "cancelled" });
-    await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).update({
-      isRecruiting: false,
-      recruitParticipants: []
-    });
     window.location.href = "./app.html";
   } catch (error) {
     console.error(error);
@@ -856,21 +830,12 @@ async function cancelRecruitment() {
   }
 }
 
-async function finishAndGoHome() {
-  finishedHomeButton.disabled = true;
-  finishedHomeButton.textContent = "処理中...";
-  const ok = await endRecruiting();
-  if (ok) {
-    window.location.href = "./app.html";
-  } else {
-    alert("募集状態の解除に失敗しました。もう一度お試しください。");
-    finishedHomeButton.disabled = false;
-    finishedHomeButton.textContent = "問題集一覧にもどる";
-  }
+function finishAndGoHome() {
+  window.location.href = "./app.html";
 }
 
-// ★ テスト用: Firestore側(isRecruiting/recruitParticipants等)には一切触れず、
-//   RTDBのセッションだけを初期状態に戻して同じ問題集をもう一度最初から解けるようにする
+// ★ テスト用: RTDBのセッションだけを初期状態に戻して同じ問題集をもう一度最初から解けるようにする
+//   (募集状態はもともとFirestoreではなくRTDBのstatusだけで判定しているので、他には何も触れない)
 async function resetSessionForTesting() {
   if (!confirm("募集状態はそのままで、セッション（参加者・回答・スコア）だけリセットして最初からやり直しますか？")) return;
   try {

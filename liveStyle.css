@@ -308,8 +308,9 @@ body {
 }
 @keyframes countdown-pop {
   0% { transform: scale(1.4); opacity: 1; }
-  45% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.6; }
+  35% { transform: scale(1); opacity: 1; }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0; }
 }
 
 /* ---- question ---- */
@@ -568,6 +569,8 @@ body {
 }
 #impression-input {
   font-family: "BIZ UDGothic", sans-serif;
+  font-size: 0.95rem;
+  color: var(--text);
   width: 100%;
   padding: 0.7rem 0.9rem;
   margin-bottom: 1rem;

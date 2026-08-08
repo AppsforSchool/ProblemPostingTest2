@@ -201,28 +201,12 @@ async function ensureJoined() {
     name: myUserName,
     joinedAt: firebase.database.ServerValue.TIMESTAMP
   });
-  try {
-    await db
-      .collection("ProblemPosting")
-      .doc("books")
-      .collection("data")
-      .doc(bookId)
-      .update({ recruitParticipants: firebase.firestore.FieldValue.arrayUnion(myUserId) });
-  } catch (error) {
-    console.error("参加者記録の更新エラー:", error);
-  }
 }
 
 async function leaveSession() {
   if (!confirm("参加を取り消しますか？")) return;
   try {
     await rtdb.ref(`liveSessions/${bookId}/participants/${myUserId}`).remove();
-    await db
-      .collection("ProblemPosting")
-      .doc("books")
-      .collection("data")
-      .doc(bookId)
-      .update({ recruitParticipants: firebase.firestore.FieldValue.arrayRemove(myUserId) });
   } catch (error) {
     console.error(error);
   }

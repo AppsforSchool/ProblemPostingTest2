@@ -65,6 +65,14 @@ function setUserCache(userId, data) {
 
 let bookCache = {};
 
+// ★ 「募集中」はFirestoreのフィールドではなく、RTDBの liveSessions を唯一の情報源として判定する
+let liveSessionsCache = {}; // bookId -> セッションデータ(status が finished/cancelled 以外のもののみ保持)
+let liveSessionsInitialLoadDone = false;
+
+function isActiveSessionStatus(status) {
+  return !!status && status !== "finished" && status !== "cancelled";
+}
+
 function getParmFromUrl(parm) {
   const params = new URLSearchParams(window.location.search);
   return params.get(parm);
@@ -194,13 +202,13 @@ document.addEventListener("DOMContentLoaded", () => {
   contentTypeSelect.addEventListener("change", handleFilterChange);
 });
 
-function handleFilterChange() {
+function handleFilterChange(animateBookId) {
   const isCardMode = contentTypeSelect.value === "cards";
 
   if (isCardMode) {
     makeDisplayCards(subjectSelect.value, gradeSelect.value, sortOrderSelect.value, solvedFilterSelect.value);
   } else {
-    makeDisplayBooks(subjectSelect.value, gradeSelect.value, sortOrderSelect.value, solvedFilterSelect.value);
+    makeDisplayBooks(subjectSelect.value, gradeSelect.value, sortOrderSelect.value, solvedFilterSelect.value, animateBookId);
   }
 }
 
@@ -252,6 +260,7 @@ document.addEventListener("DOMContentLoaded", () => {
       openSettingModalFromHash();
       loadingOverlay.classList.add("hidden");
       updateLastChecked();
+      attachLiveSessionsListener();
     } else {
       console.log("logout");
       window.location.href = "./index.html";
@@ -305,14 +314,13 @@ async function loadProblemBooks() {
       const solvedBy = data.solvedBy || [];
       const shuffleProblems = !!data.shuffleProblems;
       const isPrivate = !!data.isPrivate;
-      const isRecruiting = !!data.isRecruiting;
-      const recruitComment = data.recruitComment || "";
-      const recruitParticipants = data.recruitParticipants || [];
       const createdAtMillis = data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : 0;
       const updatedAtMillis = data.updatedAt && data.updatedAt.toMillis ? data.updatedAt.toMillis() : createdAtMillis;
 
-      // ★ 非公開の問題集は作成者本人と管理者にのみ表示する。ただし「みんなで解く」募集中は誰でも表示する
-      if (isPrivate && !isRecruiting && makerUserId !== myUserId && !meIsAdmin) continue;
+      // ★ 非公開の問題集は作成者本人と管理者にのみ表示する。
+      //   「みんなで解く」募集中かどうかはRTDB(liveSessions)側で別途判定し、
+      //   募集中の他人の非公開問題集は attachLiveSessionsListener() が動的に追加する
+      if (isPrivate && makerUserId !== myUserId && !meIsAdmin) continue;
 
       bookCache[bookId] = [
         title,
@@ -325,10 +333,7 @@ async function loadProblemBooks() {
         createdAtMillis,
         updatedAtMillis,
         shuffleProblems,
-        isPrivate,
-        isRecruiting,
-        recruitComment,
-        recruitParticipants
+        isPrivate
       ];
 
       await ensureUserCached(makerUserId);
@@ -339,6 +344,103 @@ async function loadProblemBooks() {
   } catch (error) {
     console.log(error);
     alert(error);
+  }
+}
+
+// ★ RTDBの liveSessions を監視し、「募集中」の状態をリアルタイムに一覧へ反映する。
+//   ・自分の問題集や公開問題集は既に bookCache にあるので、バッジと並び順だけ更新すればよい
+//   ・他人の非公開問題集が新たに募集を開始した場合は、Firestoreから該当の問題集を取得して一覧に追加する
+//   ・募集が終わった(finished/cancelled)場合、他人の非公開問題集なら一覧から取り除く
+function attachLiveSessionsListener() {
+  const sessionsRef = rtdb.ref("liveSessions");
+
+  sessionsRef
+    .once("value")
+    .then(snap => {
+      const all = snap.val() || {};
+      Object.entries(all).forEach(([bookId, session]) => {
+        if (isActiveSessionStatus(session && session.status)) {
+          liveSessionsCache[bookId] = session;
+        }
+      });
+      liveSessionsInitialLoadDone = true;
+      handleFilterChange();
+    })
+    .catch(error => console.error("募集状況の初期取得に失敗しました:", error));
+
+  sessionsRef.on("child_added", snap => handleLiveSessionUpdate(snap.key, snap.val()));
+  sessionsRef.on("child_changed", snap => handleLiveSessionUpdate(snap.key, snap.val()));
+  sessionsRef.on("child_removed", snap => handleLiveSessionUpdate(snap.key, null));
+}
+
+async function handleLiveSessionUpdate(bookId, session) {
+  const wasActive = isActiveSessionStatus(liveSessionsCache[bookId] && liveSessionsCache[bookId].status);
+  const isActive = isActiveSessionStatus(session && session.status);
+
+  if (isActive) {
+    liveSessionsCache[bookId] = session;
+  } else {
+    delete liveSessionsCache[bookId];
+  }
+
+  // ★ 初回読み込みが終わったあとに「非アクティブ→アクティブ」になった時だけ新規開始として扱う
+  const justStarted = liveSessionsInitialLoadDone && !wasActive && isActive;
+  const justEnded = wasActive && !isActive;
+
+  if (!bookCache[bookId]) {
+    if (isActive) {
+      await fetchAndAddBookToCache(bookId);
+      handleFilterChange(justStarted ? bookId : null);
+    }
+    return;
+  }
+
+  if (justEnded) {
+    const book = bookCache[bookId];
+    const isPrivate = !!book[10];
+    const isMakerOrAdmin = book[5] === myUserId || meIsAdmin;
+    if (isPrivate && !isMakerOrAdmin) {
+      delete bookCache[bookId];
+    }
+  }
+
+  handleFilterChange(justStarted ? bookId : null);
+}
+
+async function fetchAndAddBookToCache(bookId) {
+  try {
+    const doc = await db.collection("ProblemPosting").doc("books").collection("data").doc(bookId).get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    let subjectId = data.subjectId || 0;
+    if (9 < subjectId) subjectId = 0;
+    let gradeId = data.gradeId || 0;
+    if (4 < gradeId) gradeId = 0;
+    const makerUserId = data.madeBy || "";
+    const solvedBy = data.solvedBy || [];
+    const createdAtMillis = data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : 0;
+    const updatedAtMillis = data.updatedAt && data.updatedAt.toMillis ? data.updatedAt.toMillis() : createdAtMillis;
+
+    bookCache[bookId] = [
+      data.title || "タイトルがありません",
+      data.description || "説明文がありません",
+      subjectId,
+      gradeId,
+      data.problemCount || 0,
+      makerUserId,
+      solvedBy,
+      createdAtMillis,
+      updatedAtMillis,
+      !!data.shuffleProblems,
+      !!data.isPrivate
+    ];
+
+    await ensureUserCached(makerUserId);
+    for (const solverId of solvedBy) {
+      await ensureUserCached(solverId);
+    }
+  } catch (error) {
+    console.error("問題集の取得に失敗しました:", error);
   }
 }
 
@@ -396,7 +498,7 @@ async function loadCardDecks() {
   }
 }
 
-function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter) {
+function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter, animateBookId) {
   const listElement = document.getElementById("card-area");
   const loadingText = document.getElementById("loading-text");
 
@@ -404,8 +506,10 @@ function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter) {
   const fragment = document.createDocumentFragment();
 
   const sortIndex = sortOrder === "updated" ? 8 : 7;
-  const sortedEntries = Object.entries(bookCache).sort(([, bookA], [, bookB]) => {
-    const recruitingDiff = (bookB[11] ? 1 : 0) - (bookA[11] ? 1 : 0);
+  const sortedEntries = Object.entries(bookCache).sort(([bookIdA], [bookIdB]) => {
+    const bookA = bookCache[bookIdA];
+    const bookB = bookCache[bookIdB];
+    const recruitingDiff = (liveSessionsCache[bookIdB] ? 1 : 0) - (liveSessionsCache[bookIdA] ? 1 : 0);
     if (recruitingDiff !== 0) return recruitingDiff;
     return (bookB[sortIndex] || 0) - (bookA[sortIndex] || 0);
   });
@@ -414,31 +518,23 @@ function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter) {
     
     const card = document.createElement("div");
     card.classList.add("card");
+    card.dataset.bookId = bookId;
+    if (bookId === animateBookId) card.classList.add("just-started-card");
 
     const isPrivate = !!book[10];
-    const isRecruiting = !!book[11];
-    if (isPrivate) {
+    const session = liveSessionsCache[bookId];
+    const isRecruiting = !!session;
+    if (isPrivate || isRecruiting) {
       const privateBadge = document.createElement("span");
       privateBadge.classList.add("private-badge");
-      if (isRecruiting) privateBadge.classList.add("recruiting-badge");
-      privateBadge.textContent = isRecruiting ? "募集中" : "非公開";
-      card.appendChild(privateBadge);
-
-      // ★ 募集中の問題集は、実際にライブセッションが開始済み(waiting以外)かどうかをRTDBで確認し、
-      //   開始済みなら「開始済み」表示に切り替える(参加できないことが一覧の時点でわかるように)
       if (isRecruiting) {
-        rtdb
-          .ref(`liveSessions/${bookId}/status`)
-          .get()
-          .then(statusSnap => {
-            const status = statusSnap.exists() ? statusSnap.val() : "waiting";
-            if (status && status !== "waiting" && status !== "cancelled" && status !== "finished") {
-              privateBadge.textContent = "開始済み";
-              privateBadge.classList.add("started-badge");
-            }
-          })
-          .catch(error => console.error("セッション状態の確認に失敗しました:", error));
+        const isWaiting = session.status === "waiting";
+        privateBadge.classList.add(isWaiting ? "recruiting-badge" : "started-badge");
+        privateBadge.textContent = isWaiting ? "募集中" : "開始済み";
+      } else {
+        privateBadge.textContent = "非公開";
       }
+      card.appendChild(privateBadge);
     }
       
     const cardTop = document.createElement("div");
@@ -832,17 +928,6 @@ document.addEventListener("DOMContentLoaded", () => {
     recruitStartConfirmButton.textContent = "セッションを作成中…";
     recruitStartModalClose.classList.add("hidden");
     try {
-      await db
-        .collection("ProblemPosting")
-        .doc("books")
-        .collection("data")
-        .doc(bookId)
-        .update({
-          isRecruiting: true,
-          recruitComment: comment,
-          recruitParticipants: [],
-          recruitTimeLimitSeconds: timeLimitSeconds
-        });
       await rtdb.ref(`liveSessions/${bookId}`).set({
         hostUserId: myUserId,
         status: "waiting",
@@ -858,9 +943,15 @@ document.addEventListener("DOMContentLoaded", () => {
         totalScores: {},
         createdAt: firebase.database.ServerValue.TIMESTAMP
       });
-      bookCache[bookId][11] = true;
-      bookCache[bookId][12] = comment;
-      bookCache[bookId][13] = [];
+      // ★ liveSessionsCacheはattachLiveSessionsListener()のchild_addedで自動更新されるが、
+      //   モーダルの再表示はそれを待たず即座に行いたいのでここでも反映しておく
+      liveSessionsCache[bookId] = {
+        hostUserId: myUserId,
+        status: "waiting",
+        timeLimitSeconds,
+        recruitComment: comment,
+        participants: {}
+      };
       recruitStartModal.classList.add("hidden");
       openSettingModal(bookId);
       handleFilterChange();
@@ -877,8 +968,9 @@ document.addEventListener("DOMContentLoaded", () => {
   joinButton.addEventListener("click", async () => {
     const bookId = settingModalBookId;
     if (!bookId || !bookCache[bookId]) return;
-    const participants = bookCache[bookId][13] || [];
-    const alreadyJoined = participants.includes(myUserId);
+    const session = liveSessionsCache[bookId];
+    const participants = (session && session.participants) || {};
+    const alreadyJoined = Object.prototype.hasOwnProperty.call(participants, myUserId);
 
     if (alreadyJoined) {
       // ★ 既に参加済みの場合はそのまま待機画面(解答画面)へ移動するだけ
@@ -889,21 +981,13 @@ document.addEventListener("DOMContentLoaded", () => {
     joinButton.disabled = true;
     try {
       const statusSnap = await rtdb.ref(`liveSessions/${bookId}/status`).get();
-      const status = statusSnap.exists() ? statusSnap.val() : "waiting";
+      const status = statusSnap.exists() ? statusSnap.val() : null;
       if (status !== "waiting") {
         joinButton.classList.add("hidden");
         joinDisabledText.classList.remove("hidden");
         return;
       }
 
-      const bookRef = db
-        .collection("ProblemPosting")
-        .doc("books")
-        .collection("data")
-        .doc(bookId);
-      await bookRef.update({
-        recruitParticipants: firebase.firestore.FieldValue.arrayUnion(myUserId)
-      });
       const myCached = getUserCache(myUserId) || {};
       await rtdb.ref(`liveSessions/${bookId}/participants/${myUserId}`).set({
         name: myCached.name || myUserId,
@@ -920,7 +1004,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (settingModalType === "card") {
       const flipParam = flipCardsToggle.checked && !flipCardsToggle.disabled ? "&flip=1" : "";
       window.location.href = `./answerCard.html?id=${settingModalBookId}${flipParam}`;
-    } else if (bookCache[settingModalBookId] && bookCache[settingModalBookId][11]) {
+    } else if (liveSessionsCache[settingModalBookId]) {
       // ★ 募集中の問題集は、主催者用のライブ進行画面へ
       window.location.href = `./liveHost.html?id=${settingModalBookId}`;
     } else {
@@ -993,12 +1077,14 @@ function openSettingModal(id) {
 }
 
 // ★ 「みんなで解く」募集中かどうかで出題設定モーダルの表示を切り替える（問題集のみ対象）
-async function applyRecruitModeToSettingModal(id) {
+// ★ 「みんなで解く」募集中かどうかで出題設定モーダルの表示を切り替える（問題集のみ対象）
+//   liveSessionsCache はRTDBのリアルタイム監視で常に最新化されているので、ここでは同期的に判定できる
+function applyRecruitModeToSettingModal(id) {
   const book = bookCache[id];
   const isMaker = book[5] === myUserId;
   const isPrivate = !!book[10];
-  const isRecruiting = !!book[11];
-  const recruitComment = book[12] || "";
+  const session = liveSessionsCache[id];
+  const isRecruiting = !!session;
 
   recruitCommentArea.classList.add("hidden");
   recruitStartOpenButton.classList.add("hidden");
@@ -1017,7 +1103,7 @@ async function applyRecruitModeToSettingModal(id) {
     shuffleToggleRow.classList.add("hidden");
 
     recruitCommentArea.classList.remove("hidden");
-    recruitCommentText.textContent = recruitComment || "(コメントはありません)";
+    recruitCommentText.textContent = session.recruitComment || "(コメントはありません)";
 
     if (isMaker) {
       // 主催者: 待機画面(進行管理)へ
@@ -1026,34 +1112,21 @@ async function applyRecruitModeToSettingModal(id) {
       settingModalStartButton.textContent = "待機画面へ";
       joinButton.classList.add("hidden");
     } else {
-      // 参加者: 参加する/待機画面へ のみ。既に開始済みなら参加不可
+      // 参加者: 参加する/待機画面へ のみ。既に開始済み(waiting以外)かつ未参加なら参加不可
       settingModalStartButton.classList.add("hidden");
 
-      const participants = book[13] || [];
-      if (participants.includes(myUserId)) {
-        joinButton.classList.remove("hidden");
-        joinButton.disabled = false;
-        updateJoinButtonState(id);
+      const participants = session.participants || {};
+      const alreadyJoined = Object.prototype.hasOwnProperty.call(participants, myUserId);
+
+      joinButton.classList.remove("hidden");
+      joinButton.disabled = false;
+      if (alreadyJoined) {
+        joinButton.textContent = "待機画面へ";
+      } else if (session.status === "waiting") {
+        joinButton.textContent = "参加する";
       } else {
-        joinButton.classList.remove("hidden");
-        joinButton.disabled = true;
-        joinButton.textContent = "確認中...";
-        try {
-          const statusSnap = await rtdb.ref(`liveSessions/${id}/status`).get();
-          if (settingModalBookId !== id) return; // その間にモーダルが閉じられていたら何もしない
-          const status = statusSnap.exists() ? statusSnap.val() : "waiting";
-          if (status === "waiting") {
-            joinButton.textContent = "参加する";
-            joinButton.disabled = false;
-          } else {
-            joinButton.classList.add("hidden");
-            joinDisabledText.classList.remove("hidden");
-          }
-        } catch (error) {
-          console.error(error);
-          joinButton.textContent = "参加する";
-          joinButton.disabled = false;
-        }
+        joinButton.classList.add("hidden");
+        joinDisabledText.classList.remove("hidden");
       }
     }
   } else {
@@ -1062,13 +1135,6 @@ async function applyRecruitModeToSettingModal(id) {
       recruitStartOpenButton.classList.remove("hidden");
     }
   }
-}
-
-function updateJoinButtonState(id) {
-  const participants = bookCache[id][13] || [];
-  const joined = participants.includes(myUserId);
-  joinButton.textContent = joined ? "待機画面へ" : "参加する";
-  joinButton.classList.toggle("leave-mode", false);
 }
 
 function openCardSettingModal(id) {
