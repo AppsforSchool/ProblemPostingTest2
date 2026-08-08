@@ -60,7 +60,7 @@ let bgmStarted = false;
 let lastRenderedStatus = null;
 
 function updateAudioMuteButtonLabel() {
-  audioMuteButton.textContent = LiveAudio.isMuted() ? "🔇" : "🔊";
+  audioMuteButton.innerHTML = LiveAudio.iconMarkup(LiveAudio.isMuted());
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -304,6 +304,9 @@ function render() {
 
   const statusChanged = status !== lastRenderedStatus;
   lastRenderedStatus = status;
+  if (statusChanged && status !== "finished") {
+    finishedRevealStarted = false;
+  }
 
   if (status === "waiting") {
     setPhase(phaseWaiting);
@@ -340,9 +343,8 @@ function render() {
     if (statusChanged) {
       LiveAudio.stopBgm();
       bgmStarted = false;
-      LiveAudio.playFanfare();
     }
-    renderFinishedPhase();
+    renderFinishedPhase(statusChanged);
   } else if (status === "cancelled") {
     LiveAudio.stopBgm();
     setPhase(phaseCancelled);
@@ -577,34 +579,121 @@ function renderResultsPhase() {
   renderLeaderboard(resultLeaderboardArea);
 }
 
-function renderFinishedPhase() {
-  renderLeaderboard(finishedLeaderboardArea, true);
+function buildRanking() {
   const totalScores = sessionData.totalScores || {};
   const participants = sessionData.participants || {};
-  const ranking = Object.keys(participants)
-    .map(uid => ({ uid, score: totalScores[uid] || 0 }))
-    .sort((a, b) => b.score - a.score);
-  const myRank = ranking.findIndex(r => r.uid === myUserId) + 1;
-  finishedMyRankText.textContent = myRank > 0 ? `あなたの順位: ${myRank} 位 (${totalScores[myUserId] || 0} 点)` : "";
-}
-
-function renderLeaderboard(container, isFinal) {
-  const totalScores = sessionData.totalScores || {};
-  const participants = sessionData.participants || {};
-  const ranking = Object.keys(participants)
+  return Object.keys(participants)
     .map(uid => ({ uid, name: (participants[uid] && participants[uid].name) || uid, score: totalScores[uid] || 0 }))
     .sort((a, b) => b.score - a.score);
+}
+
+function buildLeaderboardRow(entry, rank) {
+  const row = document.createElement("div");
+  row.classList.add("leaderboard-row");
+  row.dataset.uid = entry.uid;
+  if (entry.uid === myUserId) row.classList.add("is-me");
+  row.innerHTML = `<span class="leaderboard-rank">${rank}</span><span class="leaderboard-name">${escapeHtml(
+    entry.name
+  )}</span><span class="leaderboard-score">${entry.score}</span>`;
+  return row;
+}
+
+// ★ ①ランキングが変動したら、順位の入れ替わりを滑らかにアニメーションさせる(FLIPテクニック)
+function renderLeaderboard(container, isFinal) {
+  const ranking = buildRanking();
+
+  const firstRects = {};
+  Array.from(container.children).forEach(row => {
+    if (row.dataset.uid) firstRects[row.dataset.uid] = row.getBoundingClientRect();
+  });
 
   container.innerHTML = "";
   ranking.forEach((entry, i) => {
-    const row = document.createElement("div");
-    row.classList.add("leaderboard-row");
-    if (entry.uid === myUserId) row.classList.add("is-me");
-    if (isFinal && i < 3) row.classList.add(`rank-${i + 1}`);
-    row.innerHTML = `<span class="leaderboard-rank">${i + 1}</span><span class="leaderboard-name">${escapeHtml(
-      entry.name
-    )}</span><span class="leaderboard-score">${entry.score}</span>`;
+    const rank = i + 1;
+    const row = buildLeaderboardRow(entry, rank);
+    if (isFinal && rank <= 3) row.classList.add(`rank-${rank}`);
     container.appendChild(row);
+  });
+
+  Array.from(container.children).forEach(row => {
+    const first = firstRects[row.dataset.uid];
+    if (!first) {
+      row.classList.add("row-pop-in");
+      return;
+    }
+    const last = row.getBoundingClientRect();
+    const deltaY = first.top - last.top;
+    if (Math.abs(deltaY) > 1) {
+      row.style.transition = "none";
+      row.style.transform = `translateY(${deltaY}px)`;
+      requestAnimationFrame(() => {
+        row.style.transition = "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)";
+        row.style.transform = "";
+      });
+    }
+  });
+}
+
+// ★ ②最終結果は3位→2位→(ため)→1位の順に一つずつ演出しながら発表する。
+//   自分が4位以下の場合は、順位表示欄に自分の順位を出す(トップ3の場合はポディウム内に既に表示されるので隠す)
+let finishedRevealStarted = false;
+
+function renderFinishedPhase(isFreshTransition) {
+  const ranking = buildRanking();
+  const myIndex = ranking.findIndex(r => r.uid === myUserId);
+
+  if (myIndex >= 0 && myIndex < 3) {
+    finishedMyRankText.classList.add("hidden");
+  } else if (myIndex >= 3) {
+    finishedMyRankText.textContent = `あなたの順位: ${myIndex + 1} 位 (${ranking[myIndex].score} 点)`;
+    finishedMyRankText.classList.remove("hidden");
+  } else {
+    finishedMyRankText.classList.add("hidden");
+  }
+
+  if (finishedRevealStarted) return;
+  finishedRevealStarted = true;
+
+  finishedLeaderboardArea.innerHTML = "";
+
+  const rest = ranking.slice(3);
+  const restFragment = document.createDocumentFragment();
+  rest.forEach((entry, i) => restFragment.appendChild(buildLeaderboardRow(entry, i + 4)));
+  finishedLeaderboardArea.appendChild(restFragment);
+
+  const top3 = ranking.slice(0, 3);
+  if (top3.length === 0) return;
+
+  if (isFreshTransition) {
+    revealPodium(top3);
+  } else {
+    for (let i = top3.length - 1; i >= 0; i--) {
+      const row = buildLeaderboardRow(top3[i], i + 1);
+      row.classList.add(`rank-${i + 1}`);
+      finishedLeaderboardArea.prepend(row);
+    }
+  }
+}
+
+function revealPodium(top3) {
+  const revealOrder = [2, 1, 0]; // top3内のindex: 3位→2位→1位の順
+  const delays = [500, 1300, 2900];
+  revealOrder.forEach((idx, seq) => {
+    const entry = top3[idx];
+    if (!entry) return;
+    setTimeout(() => {
+      const rank = idx + 1;
+      const row = buildLeaderboardRow(entry, rank);
+      row.classList.add(`rank-${rank}`, "podium-reveal");
+      finishedLeaderboardArea.prepend(row);
+      requestAnimationFrame(() => row.classList.add("podium-reveal-active"));
+      if (rank === 1) {
+        row.classList.add("podium-first-flourish");
+        LiveAudio.playFanfare();
+      } else {
+        LiveAudio.playReveal();
+      }
+    }, delays[seq]);
   });
 }
 
