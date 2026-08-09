@@ -661,8 +661,7 @@ function renderFinishedPhase(isFreshTransition) {
   rest.forEach((entry, i) => restFragment.appendChild(buildLeaderboardRow(entry, i + 4)));
   finishedLeaderboardArea.appendChild(restFragment);
 
-  const top3 = ranking.slice(0, 3);
-  if (top3.length === 0) return;
+  const top3 = [0, 1, 2].map(i => ranking[i] || { uid: `placeholder-rank-${i + 1}`, name: "-", score: "-" });
 
   if (isFreshTransition) {
     revealPodium(top3);

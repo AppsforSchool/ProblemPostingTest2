@@ -208,21 +208,21 @@ const LiveAudio = (() => {
     return muted;
   }
 
-  // ---- アイコン(絵文字ではなく独自SVG) ----
+  // ---- アイコン(絵文字ではなく独自SVG。角を丸めた線画スタイル) ----
   function iconMarkup(isMutedIcon) {
     if (isMutedIcon) {
       return (
-        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-        '<path d="M4 9.5V14.5H8L13 19V5L8 9.5H4Z" fill="currentColor"/>' +
-        '<path d="M16.5 8.5L21 13M21 8.5L16.5 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M4 9.5H7L12 5.5V18.5L7 14.5H4C3.4 14.5 3 14.1 3 13.5V10.5C3 9.9 3.4 9.5 4 9.5Z"/>' +
+        '<path d="M16.5 9.2L21 13.8M21 9.2L16.5 13.8"/>' +
         "</svg>"
       );
     }
     return (
-      '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M4 9.5V14.5H8L13 19V5L8 9.5H4Z" fill="currentColor"/>' +
-      '<path d="M16.2 8.8C17.3 9.9 17.3 14.1 16.2 15.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
-      '<path d="M18.6 6.4C21 8.8 21 15.2 18.6 17.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.7"/>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M4 9.5H7L12 5.5V18.5L7 14.5H4C3.4 14.5 3 14.1 3 13.5V10.5C3 9.9 3.4 9.5 4 9.5Z"/>' +
+      '<path d="M15.3 9C16.4 10.1 16.4 13.9 15.3 15"/>' +
+      '<path d="M17.6 6.6C20 9 20 15 17.6 17.4" opacity="0.7"/>' +
       "</svg>"
     );
   }

@@ -45,7 +45,7 @@ body {
 }
 
 .hidden {
-  display: none;
+  display: none !important; /* ★ 個別要素の display 指定に負けて hidden が効かなくなる事故を防ぐ */
 }
 
 #loading-overlay {
@@ -216,6 +216,9 @@ body {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.drawer button.normal-button.hidden {
+  display: none;
 }
 .drawer button.normal-button:hover:not(:disabled) {
   background-color: var(--primary-dark);
