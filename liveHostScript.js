@@ -58,7 +58,7 @@ let countdownNumberEl;
 let questionIndexText, questionText, questionImage, questionChoicesArea, questionTimerText, questionTimerBar, questionAnsweredCount, cutoffButton;
 let gradingHintText, gradingSubmissionsArea, requestAiGradingButton, gradingErrorText;
 let resultsCorrectArea, resultsLeaderboardArea, nextQuestionButton;
-let finishedLeaderboardArea, finishedHomeButton;
+let finishedLeaderboardArea, finishedButtonsArea, finishedHomeButton;
 let audioMuteButton;
 let bgmStarted = false;
 let lastRenderedStatus = null;
@@ -108,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
   nextQuestionButton = document.getElementById("next-question-button");
 
   finishedLeaderboardArea = document.getElementById("finished-leaderboard-area");
+  finishedButtonsArea = document.getElementById("finished-buttons-area");
   finishedHomeButton = document.getElementById("finished-home-button");
 
   startSessionButton.addEventListener("click", startSession);
@@ -514,46 +515,55 @@ function renderFinishedPhase(isFreshTransition) {
 
   const ranking = buildRanking();
   finishedLeaderboardArea.innerHTML = "";
+  finishedButtonsArea.classList.remove("show");
+  finishedButtonsArea.classList.add("hidden");
+
+  // ★ ②表彰台(1〜3位)は最初から場所を確保しておき、中身は隠した状態で挿入する(あとで見た目だけ切り替える)
+  // 参加人数が3人未満でも枠は常に3つ表示する(空きは名前を「-」にしたプレースホルダー)
+  const top3 = [0, 1, 2].map(i => ranking[i] || { uid: `placeholder-rank-${i + 1}`, name: "-", score: "-" });
+  const podiumRows = top3.map((entry, i) => {
+    const row = buildLeaderboardRow(entry, i + 1);
+    row.classList.add(`rank-${i + 1}`, "podium-reveal");
+    finishedLeaderboardArea.appendChild(row);
+    return row;
+  });
 
   const rest = ranking.slice(3);
   const restFragment = document.createDocumentFragment();
   rest.forEach((entry, i) => restFragment.appendChild(buildLeaderboardRow(entry, i + 4)));
   finishedLeaderboardArea.appendChild(restFragment);
 
-  // ★ 参加人数が3人未満でも、表彰台は常に3枠表示する(空きは名前を「-」にしたプレースホルダー)
-  const top3 = [0, 1, 2].map(i => ranking[i] || { uid: `placeholder-rank-${i + 1}`, name: "-", score: "-" });
-
   if (isFreshTransition) {
-    revealPodium(top3);
+    revealPodium(podiumRows);
   } else {
-    for (let i = top3.length - 1; i >= 0; i--) {
-      const row = buildLeaderboardRow(top3[i], i + 1);
-      row.classList.add(`rank-${i + 1}`);
-      finishedLeaderboardArea.prepend(row);
-    }
+    podiumRows.forEach(row => row.classList.add("podium-reveal-active"));
+    showFinishedButtons();
   }
 }
 
-function revealPodium(top3) {
-  const revealOrder = [2, 1, 0]; // top3内のindex: 3位→2位→1位の順
+function revealPodium(podiumRows) {
+  // podiumRows[0]=1位, [1]=2位, [2]=3位 (既にDOM上には配置済み。表示だけ後から切り替える)
+  const revealSeq = [2, 1, 0]; // 3位→2位→1位の順
   const delays = [500, 1300, 2900];
-  revealOrder.forEach((idx, seq) => {
-    const entry = top3[idx];
-    if (!entry) return;
+  revealSeq.forEach((idx, seq) => {
+    const row = podiumRows[idx];
+    if (!row) return;
     setTimeout(() => {
-      const rank = idx + 1;
-      const row = buildLeaderboardRow(entry, rank);
-      row.classList.add(`rank-${rank}`, "podium-reveal");
-      finishedLeaderboardArea.prepend(row);
-      requestAnimationFrame(() => row.classList.add("podium-reveal-active"));
-      if (rank === 1) {
+      row.classList.add("podium-reveal-active");
+      if (idx === 0) {
         row.classList.add("podium-first-flourish");
         LiveAudio.playFanfare();
+        setTimeout(showFinishedButtons, 900);
       } else {
         LiveAudio.playReveal();
       }
     }, delays[seq]);
   });
+}
+
+function showFinishedButtons() {
+  finishedButtonsArea.classList.remove("hidden");
+  requestAnimationFrame(() => finishedButtonsArea.classList.add("show"));
 }
 
 function escapeHtml(text) {

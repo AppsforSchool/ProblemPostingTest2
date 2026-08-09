@@ -173,6 +173,29 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ★ ③ 正解発表後、問題カードを消さずに少し縮めて「どかす」演出。下に結果カードが並ぶ */
+.live-phase.question-settled {
+  transform: scale(0.94);
+  opacity: 0.82;
+  filter: saturate(0.8);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease, filter 0.5s ease;
+}
+.live-phase.stacked-below {
+  margin-top: 1rem;
+}
+
+.finished-buttons-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.finished-buttons-area.show {
+  opacity: 1;
+}
+
 .live-phase-title {
   font-size: 1.15rem;
   font-weight: 700;
@@ -330,9 +353,7 @@ body {
   line-height: 1.2;
   padding: 1rem 1.8rem;
   border-radius: var(--radius-lg);
-  background: rgba(8, 6, 20, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
   transform: scale(0.82);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   text-align: center;
@@ -341,16 +362,16 @@ body {
   transform: scale(1);
 }
 .answer-reveal-banner.correct .answer-reveal-text {
-  color: var(--good);
-  box-shadow: 0 0 50px rgba(46, 158, 91, 0.5);
+  background: linear-gradient(135deg, #2e9e5b, #6fe0a0);
+  box-shadow: 0 0 55px rgba(46, 158, 91, 0.55), 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 .answer-reveal-banner.incorrect .answer-reveal-text {
-  color: var(--bad);
-  box-shadow: 0 0 50px rgba(214, 69, 69, 0.5);
+  background: linear-gradient(135deg, var(--primary), #ff6b6b);
+  box-shadow: 0 0 55px rgba(var(--primary-rgb), 0.55), 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 .answer-reveal-banner.neutral .answer-reveal-text {
-  color: var(--text-muted);
-  box-shadow: 0 0 50px rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, var(--accent), #9aa4f7);
+  box-shadow: 0 0 55px rgba(var(--accent-rgb), 0.5), 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 /* ---- countdown (画面全体を使った演出) ---- */
