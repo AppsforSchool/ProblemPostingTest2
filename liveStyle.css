@@ -192,22 +192,39 @@ body {
   color: var(--text-muted);
   align-self: flex-start;
 }
-.waiting-time-limit-select {
-  font-family: "BIZ UDGothic", sans-serif;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
+.time-limit-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
   width: 100%;
-  padding: 0.65rem 0.8rem;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  background-color: var(--surface-alt);
 }
-.waiting-time-limit-select:focus {
-  border-color: var(--primary);
-  background-color: var(--surface);
-  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
-  outline: none;
+.time-limit-option {
+  font-family: "BIZ UDGothic", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 3.1rem;
+  height: 3.1rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-alt);
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18), 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s var(--ease), background-color 0.2s var(--ease), box-shadow 0.2s var(--ease), color 0.2s var(--ease);
+}
+.time-limit-option:hover:not(.active) {
+  background: var(--border);
+}
+.time-limit-option:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+.time-limit-option.active {
+  color: #fff;
+  background: linear-gradient(140deg, var(--primary), var(--accent));
+  box-shadow: 0 3px 0 rgba(38, 20, 60, 0.55), 0 5px 12px rgba(var(--primary-rgb), 0.45);
 }
 .waiting-comment-text {
   background: rgba(var(--primary-rgb), 0.16);
@@ -276,6 +293,21 @@ body {
 }
 .live-secondary-button:hover:not(:disabled) { background: var(--border); }
 .live-secondary-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ★ 全員解答済みになったら締め切るボタンを強調(色を塗りつぶし+ゆっくり脈打つ光) */
+.live-secondary-button.cutoff-emphasis {
+  color: #fff;
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  border-color: transparent;
+  animation: cutoff-emphasis-pulse 1.4s ease-in-out infinite;
+}
+.live-secondary-button.cutoff-emphasis:hover:not(:disabled) {
+  background: linear-gradient(120deg, var(--primary-dark), var(--accent));
+}
+@keyframes cutoff-emphasis-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(var(--primary-rgb), 0); }
+}
 
 /* ---- countdown (画面全体を使った演出) ---- */
 #phase-countdown {

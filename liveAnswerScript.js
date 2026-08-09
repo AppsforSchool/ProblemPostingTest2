@@ -45,12 +45,12 @@ let loadingOverlay;
 let loadingStatusText;
 let liveHeaderTitle;
 
-let phaseWaiting, phaseCountdown, phaseQuestion, phaseWaitingResult, phaseGrading, phaseResults, phaseFinished, phaseCancelled;
+let phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseCancelled;
 
 let waitingParticipantsList, waitingCommentText, leaveWaitingButton;
 let countdownNumberEl;
 let questionIndexText, questionTimerText, questionTimerBar, answerTypeText, questionText, questionImage,
-  choicesArea, textAnswerInput, descriptiveAnswerInput, submitAnswerButton;
+  choicesArea, textAnswerInput, descriptiveAnswerInput, submitAnswerButton, submittedHintText;
 let resultMyScoreText, resultCorrectArea, resultLeaderboardArea, resultWaitingHint;
 let finishedMyRankText, finishedLeaderboardArea, writeImpressionButton, finishedHomeButton;
 
@@ -71,7 +71,6 @@ document.addEventListener("DOMContentLoaded", () => {
   phaseWaiting = document.getElementById("phase-waiting");
   phaseCountdown = document.getElementById("phase-countdown");
   phaseQuestion = document.getElementById("phase-question");
-  phaseWaitingResult = document.getElementById("phase-waiting-result");
   phaseGrading = document.getElementById("phase-grading");
   phaseResults = document.getElementById("phase-results");
   phaseFinished = document.getElementById("phase-finished");
@@ -93,6 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
   textAnswerInput = document.getElementById("text-answer-input");
   descriptiveAnswerInput = document.getElementById("descriptive-answer-input");
   submitAnswerButton = document.getElementById("submit-answer-button");
+  submittedHintText = document.getElementById("submitted-hint-text");
 
   resultMyScoreText = document.getElementById("result-my-score-text");
   resultCorrectArea = document.getElementById("result-correct-area");
@@ -288,7 +288,7 @@ function showCancelledMessage(title, hint) {
 }
 
 function setPhase(phase) {
-  [phaseWaiting, phaseCountdown, phaseQuestion, phaseWaitingResult, phaseGrading, phaseResults, phaseFinished, phaseCancelled].forEach(
+  [phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseCancelled].forEach(
     el => el.classList.add("hidden")
   );
   phase.classList.remove("hidden");
@@ -315,15 +315,9 @@ function render() {
     setPhase(phaseCountdown);
     runLocalCountdownIfNeeded();
   } else if (status === "question") {
-    const index = sessionData.currentQuestionIndex;
-    const myAnswer = sessionData.answers && sessionData.answers[index] && sessionData.answers[index][myUserId];
     if (statusChanged) LiveAudio.playQuestionStart();
-    if (myAnswer) {
-      setPhase(phaseWaitingResult);
-    } else {
-      setPhase(phaseQuestion);
-      renderQuestionPhase();
-    }
+    setPhase(phaseQuestion);
+    renderQuestionPhase();
   } else if (status === "grading") {
     setPhase(phaseGrading);
   } else if (status === "results") {
@@ -353,7 +347,9 @@ function render() {
 
 function renderWaitingPhase() {
   const participants = sessionData.participants || {};
-  waitingCommentText.textContent = sessionData.recruitComment || "";
+  const comment = (sessionData.recruitComment || "").trim();
+  waitingCommentText.textContent = comment;
+  waitingCommentText.classList.toggle("hidden", comment === "");
   waitingParticipantsList.innerHTML = "";
   Object.values(participants).forEach(p => {
     const chip = document.createElement("span");
@@ -387,6 +383,11 @@ function showCountdownNumber(count) {
   void countdownNumberEl.offsetWidth;
   countdownNumberEl.classList.add("pop");
   LiveAudio.playCountdownTick(count === 1);
+}
+
+function myAnswerForCurrentQuestion() {
+  const index = sessionData && sessionData.currentQuestionIndex;
+  return sessionData && sessionData.answers && sessionData.answers[index] && sessionData.answers[index][myUserId];
 }
 
 function renderQuestionPhase() {
@@ -433,6 +434,7 @@ function renderQuestionPhase() {
       button.textContent = choices[i];
       button.dataset.index = i;
       button.addEventListener("click", () => {
+        if (myAnswerForCurrentQuestion()) return; // 送信済みなら選択を変更させない
         if (isSingle) {
           Array.from(choicesArea.children).forEach(b => b.classList.remove("active"));
           button.classList.add("active");
@@ -449,7 +451,35 @@ function renderQuestionPhase() {
     });
   }
 
-  updateSubmitButtonState();
+  // ★ 既に解答を送信済みなら、自分の解答内容を表示したまま読み取り専用にする
+  const myAnswer = myAnswerForCurrentQuestion();
+  if (myAnswer) {
+    if (isText) {
+      textAnswerInput.value = myAnswer.raw || "";
+      textAnswerInput.disabled = true;
+    } else if (isDescriptive) {
+      descriptiveAnswerInput.value = myAnswer.raw || "";
+      descriptiveAnswerInput.disabled = true;
+    } else {
+      const selected = Array.isArray(myAnswer.raw) ? myAnswer.raw : [];
+      Array.from(choicesArea.children).forEach(button => {
+        const i = Number(button.dataset.index);
+        button.classList.toggle("active", selected.includes(i));
+        button.disabled = true;
+      });
+    }
+    submitAnswerButton.disabled = true;
+    submitAnswerButton.classList.add("hidden");
+    submittedHintText.classList.remove("hidden");
+  } else {
+    textAnswerInput.disabled = false;
+    descriptiveAnswerInput.disabled = false;
+    Array.from(choicesArea.children).forEach(button => (button.disabled = false));
+    submitAnswerButton.classList.remove("hidden");
+    submittedHintText.classList.add("hidden");
+    updateSubmitButtonState();
+  }
+
   updateQuestionTimerDisplay();
 
   clearInterval(timerRefreshHandle);
@@ -486,7 +516,7 @@ function updateSubmitButtonState() {
   const index = sessionData && sessionData.currentQuestionIndex;
   const problem = problemsData[index];
   if (!problem) return;
-  if (sessionData.locked) {
+  if (sessionData.locked || myAnswerForCurrentQuestion()) {
     submitAnswerButton.disabled = true;
     return;
   }

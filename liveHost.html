@@ -50,15 +50,15 @@
       <p class="live-phase-title">参加者を待っています</p>
       <p class="waiting-count-text">参加者 <span id="waiting-participants-count">0</span> 人</p>
 
-      <label class="waiting-time-limit-label" for="waiting-time-limit-select">1問あたりの制限時間</label>
-      <select id="waiting-time-limit-select" class="waiting-time-limit-select">
-        <option value="5">5秒</option>
-        <option value="10">10秒</option>
-        <option value="20">20秒</option>
-        <option value="30">30秒</option>
-        <option value="60">60秒</option>
-        <option value="0">無制限</option>
-      </select>
+      <p class="waiting-time-limit-label">1問あたりの制限時間</p>
+      <div id="waiting-time-limit-options" class="time-limit-options">
+        <button type="button" class="time-limit-option" data-value="5">5</button>
+        <button type="button" class="time-limit-option active" data-value="10">10</button>
+        <button type="button" class="time-limit-option" data-value="20">20</button>
+        <button type="button" class="time-limit-option" data-value="30">30</button>
+        <button type="button" class="time-limit-option" data-value="60">60</button>
+        <button type="button" class="time-limit-option" data-value="0">∞</button>
+      </div>
 
       <div id="waiting-participants-list" class="participants-list"></div>
       <button id="start-session-button" class="live-next-button start-button-glow">スタート</button>

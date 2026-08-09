@@ -51,7 +51,9 @@ let hostTitleText;
 
 let phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseSessionMissing;
 
-let waitingParticipantsList, waitingParticipantsCount, waitingTimeLimitSelect, startSessionButton, cancelRecruitmentButton;
+let waitingParticipantsList, waitingParticipantsCount, waitingTimeLimitOptions, startSessionButton, cancelRecruitmentButton;
+let selectedTimeLimitSeconds = 10;
+let userChangedTimeLimit = false;
 let countdownNumberEl;
 let questionIndexText, questionText, questionImage, questionChoicesArea, questionTimerText, questionTimerBar, questionAnsweredCount, cutoffButton;
 let gradingHintText, gradingSubmissionsArea, requestAiGradingButton, gradingErrorText;
@@ -81,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   waitingParticipantsList = document.getElementById("waiting-participants-list");
   waitingParticipantsCount = document.getElementById("waiting-participants-count");
-  waitingTimeLimitSelect = document.getElementById("waiting-time-limit-select");
+  waitingTimeLimitOptions = document.getElementById("waiting-time-limit-options");
   startSessionButton = document.getElementById("start-session-button");
   cancelRecruitmentButton = document.getElementById("cancel-recruitment-button");
 
@@ -111,6 +113,13 @@ document.addEventListener("DOMContentLoaded", () => {
   startSessionButton.addEventListener("click", startSession);
   document.getElementById("reset-session-button").addEventListener("click", resetBrokenSessionAndGoHome);
   cancelRecruitmentButton.addEventListener("click", cancelRecruitment);
+  Array.from(waitingTimeLimitOptions.children).forEach(button => {
+    button.addEventListener("click", () => {
+      userChangedTimeLimit = true;
+      selectedTimeLimitSeconds = Number(button.dataset.value) || 0;
+      Array.from(waitingTimeLimitOptions.children).forEach(b => b.classList.toggle("active", b === button));
+    });
+  });
   cutoffButton.addEventListener("click", () => lockQuestion());
   requestAiGradingButton.addEventListener("click", requestAiGrading);
   nextQuestionButton.addEventListener("click", handleNextButton);
@@ -280,8 +289,11 @@ function render() {
   if (status === "waiting") {
     setPhase(phaseWaiting);
     waitingParticipantsCount.textContent = participantIds.length;
-    if (document.activeElement !== waitingTimeLimitSelect) {
-      waitingTimeLimitSelect.value = String(sessionData.timeLimitSeconds || 0);
+    if (!userChangedTimeLimit) {
+      selectedTimeLimitSeconds = sessionData.timeLimitSeconds || 0;
+      Array.from(waitingTimeLimitOptions.children).forEach(b => {
+        b.classList.toggle("active", Number(b.dataset.value) === selectedTimeLimitSeconds);
+      });
     }
     waitingParticipantsList.innerHTML = "";
     participantIds.forEach(uid => {
@@ -366,6 +378,9 @@ function renderQuestionPhase() {
   const locked = !!sessionData.locked;
   cutoffButton.disabled = locked;
   cutoffButton.textContent = locked ? "締め切り済み" : "この問題の受付を締め切る";
+  // ★ 全員解答済みになったら締め切るボタンを強調表示する
+  const allAnswered = !locked && totalCount > 0 && answeredCount >= totalCount;
+  cutoffButton.classList.toggle("cutoff-emphasis", allAnswered);
 
   updateQuestionTimerDisplay();
 }
@@ -552,7 +567,7 @@ function escapeHtml(text) {
 async function startSession() {
   startSessionButton.disabled = true;
   try {
-    const timeLimitSeconds = Number(waitingTimeLimitSelect.value) || 0;
+    const timeLimitSeconds = selectedTimeLimitSeconds;
     await sessionRef.update({
       status: "countdown",
       timeLimitSeconds,
