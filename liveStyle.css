@@ -309,6 +309,50 @@ body {
   50% { box-shadow: 0 0 0 10px rgba(var(--primary-rgb), 0); }
 }
 
+/* ---- 各問題の答え合わせ: 正解/不正解を画面いっぱいに一瞬表示する演出 ---- */
+.answer-reveal-banner {
+  position: fixed;
+  inset: 0;
+  z-index: 960;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.answer-reveal-banner.show {
+  opacity: 1;
+}
+.answer-reveal-text {
+  font-size: clamp(2.6rem, 13vw, 5.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 1rem 1.8rem;
+  border-radius: var(--radius-lg);
+  background: rgba(8, 6, 20, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: scale(0.82);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  text-align: center;
+}
+.answer-reveal-banner.show .answer-reveal-text {
+  transform: scale(1);
+}
+.answer-reveal-banner.correct .answer-reveal-text {
+  color: var(--good);
+  box-shadow: 0 0 50px rgba(46, 158, 91, 0.5);
+}
+.answer-reveal-banner.incorrect .answer-reveal-text {
+  color: var(--bad);
+  box-shadow: 0 0 50px rgba(214, 69, 69, 0.5);
+}
+.answer-reveal-banner.neutral .answer-reveal-text {
+  color: var(--text-muted);
+  box-shadow: 0 0 50px rgba(255, 255, 255, 0.15);
+}
+
 /* ---- countdown (画面全体を使った演出) ---- */
 #phase-countdown {
   position: fixed;

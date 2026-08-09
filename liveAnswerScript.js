@@ -58,6 +58,8 @@ let impressionModal, impressionModalClose, impressionInput, impressionSaveButton
 let audioMuteButton;
 let bgmStarted = false;
 let lastRenderedStatus = null;
+let resultsRevealTimeoutHandle = null;
+let answerRevealBanner, answerRevealText;
 
 function updateAudioMuteButtonLabel() {
   audioMuteButton.innerHTML = LiveAudio.iconMarkup(LiveAudio.isMuted());
@@ -75,6 +77,8 @@ document.addEventListener("DOMContentLoaded", () => {
   phaseResults = document.getElementById("phase-results");
   phaseFinished = document.getElementById("phase-finished");
   phaseCancelled = document.getElementById("phase-cancelled");
+  answerRevealBanner = document.getElementById("answer-reveal-banner");
+  answerRevealText = document.getElementById("answer-reveal-text");
 
   waitingParticipantsList = document.getElementById("waiting-participants-list");
   waitingCommentText = document.getElementById("waiting-comment-text");
@@ -307,6 +311,12 @@ function render() {
   if (statusChanged && status !== "finished") {
     finishedRevealStarted = false;
   }
+  if (statusChanged && status !== "results" && resultsRevealTimeoutHandle) {
+    clearTimeout(resultsRevealTimeoutHandle);
+    resultsRevealTimeoutHandle = null;
+    answerRevealBanner.classList.remove("show");
+    answerRevealBanner.classList.add("hidden");
+  }
 
   if (status === "waiting") {
     setPhase(phaseWaiting);
@@ -321,17 +331,19 @@ function render() {
   } else if (status === "grading") {
     setPhase(phaseGrading);
   } else if (status === "results") {
-    setPhase(phaseResults);
     if (statusChanged) {
-      const index = sessionData.currentQuestionIndex;
-      const myAnswer = sessionData.answers && sessionData.answers[index] && sessionData.answers[index][myUserId];
-      if (myAnswer && myAnswer.correct) {
-        LiveAudio.playCorrect();
-      } else {
-        LiveAudio.playIncorrect();
-      }
+      clearTimeout(resultsRevealTimeoutHandle);
+      showAnswerRevealBanner();
+      resultsRevealTimeoutHandle = setTimeout(() => {
+        resultsRevealTimeoutHandle = null;
+        hideAnswerRevealBanner();
+        setPhase(phaseResults);
+        renderResultsPhase();
+      }, 1600);
+    } else if (!resultsRevealTimeoutHandle) {
+      setPhase(phaseResults);
+      renderResultsPhase();
     }
-    renderResultsPhase();
   } else if (status === "finished") {
     setPhase(phaseFinished);
     if (statusChanged) {
@@ -564,6 +576,37 @@ async function submitAnswer() {
     alert("解答の送信に失敗しました。");
     submitAnswerButton.disabled = false;
   }
+}
+
+// ★ まず問題画面の上に大きく「正解！」/「不正解...」を表示し、その後で結果画面(得点・ランキング)へ切り替える
+function showAnswerRevealBanner() {
+  const index = sessionData.currentQuestionIndex;
+  const myAnswer = sessionData.answers && sessionData.answers[index] && sessionData.answers[index][myUserId];
+
+  // 問題画面(選んだ答えが読み取り専用でハイライトされた状態)をそのまま裏に表示し続ける
+  setPhase(phaseQuestion);
+  renderQuestionPhase();
+
+  answerRevealBanner.classList.remove("hidden", "correct", "incorrect", "neutral");
+  if (!myAnswer) {
+    answerRevealText.textContent = "未回答...";
+    answerRevealBanner.classList.add("neutral");
+  } else if (myAnswer.correct) {
+    answerRevealText.textContent = "正解！";
+    answerRevealBanner.classList.add("correct");
+    LiveAudio.playCorrect();
+  } else {
+    answerRevealText.textContent = "不正解...";
+    answerRevealBanner.classList.add("incorrect");
+    LiveAudio.playIncorrect();
+  }
+
+  requestAnimationFrame(() => answerRevealBanner.classList.add("show"));
+}
+
+function hideAnswerRevealBanner() {
+  answerRevealBanner.classList.remove("show");
+  setTimeout(() => answerRevealBanner.classList.add("hidden"), 300);
 }
 
 function renderResultsPhase() {
