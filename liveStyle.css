@@ -364,6 +364,7 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.55));
   transform: scale(0.82);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
