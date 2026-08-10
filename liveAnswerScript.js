@@ -584,11 +584,30 @@ async function submitAnswer() {
       submittedAt: firebase.database.ServerValue.TIMESTAMP,
       graded: false
     });
+    incrementMonthlyProblemCount();
   } catch (error) {
     console.error(error);
     alert("解答の送信に失敗しました。");
     submitAnswerButton.disabled = false;
   }
+}
+
+// ★ 月ごとの解答済み問題数を加算する（通常の解答モードと同じ集計に合流させる）
+function incrementMonthlyProblemCount() {
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  db.collection("users_random")
+    .doc(myUserId)
+    .set(
+      {
+        monthlyProblemCounts: {
+          [yearMonth]: firebase.firestore.FieldValue.increment(1)
+        }
+      },
+      { merge: true }
+    )
+    .catch(error => console.error("月間解答数の更新エラー:", error));
 }
 
 // ★ まず問題画面の上に大きく「正解！」/「不正解...」を表示し、その後で結果画面(得点・ランキング)へ切り替える

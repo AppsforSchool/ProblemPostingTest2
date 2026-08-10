@@ -253,9 +253,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (getParmFromUrl("type") === "cards") {
         contentTypeSelect.value = "cards";
-        makeDisplayCards("all", "all", "created", "all");
+        makeDisplayCards("all", "all", sortOrderSelect.value, "all");
       } else {
-        makeDisplayBooks("all", "all", "created", "all");
+        makeDisplayBooks("all", "all", sortOrderSelect.value, "all");
       }
       openSettingModalFromHash();
       loadingOverlay.classList.add("hidden");
@@ -353,6 +353,17 @@ async function loadProblemBooks() {
 //   ・募集が終わった(finished/cancelled)場合、他人の非公開問題集なら一覧から取り除く
 function attachLiveSessionsListener() {
   const sessionsRef = rtdb.ref("liveSessions");
+  let errorAlertShown = false;
+  const reportError = error => {
+    console.error("募集状況の取得に失敗しました:", error);
+    if (!errorAlertShown) {
+      errorAlertShown = true;
+      alert(
+        "募集中の問題集の情報取得に失敗しました。RTDBのセキュリティルールで liveSessions 一覧の読み取りが許可されているかご確認ください。\n" +
+          (error && error.message ? error.message : error)
+      );
+    }
+  };
 
   sessionsRef
     .once("value")
@@ -366,11 +377,11 @@ function attachLiveSessionsListener() {
       liveSessionsInitialLoadDone = true;
       handleFilterChange();
     })
-    .catch(error => console.error("募集状況の初期取得に失敗しました:", error));
+    .catch(reportError);
 
-  sessionsRef.on("child_added", snap => handleLiveSessionUpdate(snap.key, snap.val()));
-  sessionsRef.on("child_changed", snap => handleLiveSessionUpdate(snap.key, snap.val()));
-  sessionsRef.on("child_removed", snap => handleLiveSessionUpdate(snap.key, null));
+  sessionsRef.on("child_added", snap => handleLiveSessionUpdate(snap.key, snap.val()), reportError);
+  sessionsRef.on("child_changed", snap => handleLiveSessionUpdate(snap.key, snap.val()), reportError);
+  sessionsRef.on("child_removed", snap => handleLiveSessionUpdate(snap.key, null), reportError);
 }
 
 async function handleLiveSessionUpdate(bookId, session) {

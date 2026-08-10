@@ -125,7 +125,6 @@ document.addEventListener("DOMContentLoaded", () => {
   requestAiGradingButton.addEventListener("click", requestAiGrading);
   nextQuestionButton.addEventListener("click", handleNextButton);
   finishedHomeButton.addEventListener("click", finishAndGoHome);
-  document.getElementById("test-reset-session-button").addEventListener("click", resetSessionForTesting);
 
   audioMuteButton = document.getElementById("audio-mute-button");
   updateAudioMuteButtonLabel();
@@ -918,6 +917,8 @@ function handleNextButton() {
   if (isLast) {
     // ★ status を "finished" にした時点で、募集中の判定(appScript.js側)は自動的に外れる
     sessionRef.update({ status: "finished" });
+    bumpBookUpdatedAt();
+    markParticipantsAsSolved();
   } else {
     nextQuestionButton.disabled = true;
     beginQuestion(index + 1).finally(() => {
@@ -926,11 +927,34 @@ function handleNextButton() {
   }
 }
 
+// ★ 「募集中/開始済み」表示が消えるタイミング(結果発表・打ち切り)で、問題集の更新日時を今にしておく
+function bumpBookUpdatedAt() {
+  db.collection("ProblemPosting")
+    .doc("books")
+    .collection("data")
+    .doc(bookId)
+    .update({ updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .catch(error => console.error("更新日時の更新に失敗しました:", error));
+}
+
+// ★ 最終結果発表まで到達したら、参加者全員を「解いた人」に追加する(通常の解答モードと同様)
+function markParticipantsAsSolved() {
+  const participantIds = Object.keys(sessionData.participants || {});
+  if (participantIds.length === 0) return;
+  db.collection("ProblemPosting")
+    .doc("books")
+    .collection("data")
+    .doc(bookId)
+    .update({ solvedBy: firebase.firestore.FieldValue.arrayUnion(...participantIds) })
+    .catch(error => console.error("解答済み記録の更新に失敗しました:", error));
+}
+
 async function cancelRecruitment() {
   if (!confirm("募集を打ち切りますか？参加者は待機画面から締め出されます。")) return;
   cancelRecruitmentButton.disabled = true;
   try {
     await sessionRef.update({ status: "cancelled" });
+    bumpBookUpdatedAt();
     window.location.href = "./app.html";
   } catch (error) {
     console.error(error);
@@ -941,30 +965,4 @@ async function cancelRecruitment() {
 
 function finishAndGoHome() {
   window.location.href = "./app.html";
-}
-
-// ★ テスト用: RTDBのセッションだけを初期状態に戻して同じ問題集をもう一度最初から解けるようにする
-//   (募集状態はもともとFirestoreではなくRTDBのstatusだけで判定しているので、他には何も触れない)
-async function resetSessionForTesting() {
-  if (!confirm("募集状態はそのままで、セッション（参加者・回答・スコア）だけリセットして最初からやり直しますか？")) return;
-  try {
-    await sessionRef.set({
-      hostUserId: myUserId,
-      status: "waiting",
-      timeLimitSeconds: sessionData.timeLimitSeconds || 10,
-      totalQuestions: problemsData.length,
-      recruitComment: sessionData.recruitComment || "",
-      currentQuestionIndex: -1,
-      currentQuestion: null,
-      currentAnswerKey: null,
-      locked: false,
-      participants: {},
-      answers: {},
-      totalScores: {},
-      createdAt: firebase.database.ServerValue.TIMESTAMP
-    });
-  } catch (error) {
-    console.error("セッションのリセットに失敗しました:", error);
-    alert("セッションのリセットに失敗しました。");
-  }
 }
