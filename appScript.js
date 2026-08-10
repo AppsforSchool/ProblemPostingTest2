@@ -1144,6 +1144,9 @@ function applyRecruitModeToSettingModal(id) {
     viewImpressionsButton.classList.remove("hidden");
     if (isPrivate && isMaker) {
       recruitStartOpenButton.classList.remove("hidden");
+      // ★ 一時的に管理者以外は「みんなで解く」を無効化(グレー表示)しておく
+      recruitStartOpenButton.disabled = !meIsAdmin;
+      recruitStartOpenButton.classList.toggle("disabled-feature", !meIsAdmin);
     }
   }
 }

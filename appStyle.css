@@ -523,16 +523,28 @@ body {
 }
 .recruit-open-button {
   color: #fff;
-  background-color: var(--primary);
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.35);
   border: none;
   margin-top: 0;
   margin-bottom: 0.8rem;
 }
 .recruit-open-button:hover {
-  background-color: var(--primary-dark);
+  background: linear-gradient(120deg, var(--primary-dark), var(--accent));
 }
 .recruit-open-button.hidden {
   display: none;
+}
+.recruit-open-button:disabled,
+.recruit-open-button.disabled-feature {
+  background: #dbe0e6;
+  color: #9aa4ae;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.recruit-open-button:disabled:hover,
+.recruit-open-button.disabled-feature:hover {
+  background: #dbe0e6;
 }
 .buttons-area #join-button {
   width: 100%;
@@ -587,22 +599,22 @@ body {
   width: 100%;
   text-align: center;
   cursor: pointer;
-  background-color: var(--primary);
+  background: linear-gradient(120deg, var(--primary), var(--accent));
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.35);
   transition: background-color 0.2s var(--ease), box-shadow 0.2s var(--ease), transform 0.15s var(--ease);
 }
 .recruit-confirm-button:hover:not(:disabled) {
-  background-color: var(--primary-dark);
+  background: linear-gradient(120deg, var(--primary-dark), var(--accent));
   box-shadow: var(--shadow-md);
 }
 .recruit-confirm-button:active:not(:disabled) {
   transform: scale(0.98);
 }
 .recruit-confirm-button:disabled {
-  background-color: #dbe0e6;
+  background: #dbe0e6;
   color: #9aa4ae;
   box-shadow: none;
   cursor: not-allowed;
@@ -705,6 +717,14 @@ body {
 }
 .buttons-area .full-width-button {
   width: 100% !important;
+}
+/* ★ 「待機画面へ」(募集中の問題集の主催者用)の時だけ、ライブ周りのボタンと同じグラデーションにする */
+.buttons-area #start-button.full-width-button {
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.35);
+}
+.buttons-area #start-button.full-width-button:hover:not(:disabled) {
+  background: linear-gradient(120deg, var(--primary-dark), var(--accent));
 }
 
 .view-impressions-button {
