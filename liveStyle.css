@@ -114,6 +114,21 @@ body {
 }
 .audio-mute-button:hover { background: rgba(255, 255, 255, 0.16); }
 .audio-mute-button:active { transform: scale(0.92); }
+.end-live-early-button {
+  flex-shrink: 0;
+  font-family: "BIZ UDGothic", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-full);
+  border: 1.5px solid rgba(214, 69, 69, 0.5);
+  background: rgba(214, 69, 69, 0.16);
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease), transform 0.15s var(--ease);
+}
+.end-live-early-button:hover { background: rgba(214, 69, 69, 0.3); }
+.end-live-early-button:active { transform: scale(0.94); }
 .live-header-badge {
   font-size: 0.7rem;
   font-weight: 700;

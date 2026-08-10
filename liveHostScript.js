@@ -60,6 +60,7 @@ let gradingHintText, gradingSubmissionsArea, requestAiGradingButton, gradingErro
 let resultsCorrectArea, resultsLeaderboardArea, nextQuestionButton;
 let finishedLeaderboardArea, finishedButtonsArea, finishedHomeButton;
 let audioMuteButton;
+let endLiveEarlyButton;
 let bgmStarted = false;
 let lastRenderedStatus = null;
 
@@ -113,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   startSessionButton.addEventListener("click", startSession);
   document.getElementById("reset-session-button").addEventListener("click", resetBrokenSessionAndGoHome);
-  cancelRecruitmentButton.addEventListener("click", cancelRecruitment);
+  cancelRecruitmentButton.addEventListener("click", () => cancelRecruitment(cancelRecruitmentButton));
   Array.from(waitingTimeLimitOptions.children).forEach(button => {
     button.addEventListener("click", () => {
       userChangedTimeLimit = true;
@@ -125,6 +126,9 @@ document.addEventListener("DOMContentLoaded", () => {
   requestAiGradingButton.addEventListener("click", requestAiGrading);
   nextQuestionButton.addEventListener("click", handleNextButton);
   finishedHomeButton.addEventListener("click", finishAndGoHome);
+
+  endLiveEarlyButton = document.getElementById("end-live-early-button");
+  endLiveEarlyButton.addEventListener("click", () => cancelRecruitment(endLiveEarlyButton));
 
   audioMuteButton = document.getElementById("audio-mute-button");
   updateAudioMuteButtonLabel();
@@ -285,6 +289,9 @@ function render() {
   if (statusChanged && status !== "finished") {
     finishedRevealStarted = false;
   }
+
+  const midGameStatuses = ["countdown", "question", "grading", "results"];
+  endLiveEarlyButton.classList.toggle("hidden", !midGameStatuses.includes(status));
 
   if (status === "waiting") {
     setPhase(phaseWaiting);
@@ -949,9 +956,11 @@ function markParticipantsAsSolved() {
     .catch(error => console.error("解答済み記録の更新に失敗しました:", error));
 }
 
-async function cancelRecruitment() {
-  if (!confirm("募集を打ち切りますか？参加者は待機画面から締め出されます。")) return;
-  cancelRecruitmentButton.disabled = true;
+// ★ 「打ち切る」= 途中経過を見せず、その場でブチッと中止する。待機中でも進行中でも同じ動作・同じ文言に統一
+async function cancelRecruitment(triggerButton) {
+  const button = triggerButton || cancelRecruitmentButton;
+  if (!confirm("募集を打ち切りますか？参加者は強制的に終了され、結果は発表されません。")) return;
+  button.disabled = true;
   try {
     await sessionRef.update({ status: "cancelled" });
     bumpBookUpdatedAt();
@@ -959,7 +968,7 @@ async function cancelRecruitment() {
   } catch (error) {
     console.error(error);
     alert("募集の打ち切りに失敗しました。");
-    cancelRecruitmentButton.disabled = false;
+    button.disabled = false;
   }
 }
 
