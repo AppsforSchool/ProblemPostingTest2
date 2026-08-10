@@ -3,6 +3,7 @@
   --primary-rgb: 206, 87, 155;
   --primary-dark: #a8386f;
   --primary-soft: #fbeaf3;
+  --accent: #5b6ee8;
 
   --light: #faf0f5;
 
@@ -535,6 +536,11 @@ body {
 }
 .buttons-area #join-button {
   width: 100%;
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.35);
+}
+.buttons-area #join-button:hover:not(:disabled) {
+  background: linear-gradient(120deg, var(--primary-dark), var(--accent));
 }
 .buttons-area #join-button.leave-mode {
   background-color: var(--surface-alt);
