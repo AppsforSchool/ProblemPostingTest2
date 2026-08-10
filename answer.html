@@ -1,0 +1,169 @@
+<html lang="ja">
+  
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>問題投稿</title>
+  <meta name="apple-mobile-web-app-capable" content="yes"> 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Signika+Negative:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="answerStyle.css">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+  
+<body>
+  <div id="loading-overlay" class="">
+    <h1>loading...</h1>
+    <p id="loading-status-text">問題を読み込んでいます｡</p>
+  </div>
+
+  <div id="no-permission-overlay" class="hidden">
+    <h1>解答できません</h1>
+    <p>この問題集を解く権限がありません。</p>
+    <a href="./app.html" class="answer-next-button">ホームにもどる</a>
+  </div>
+  
+  <div id="share-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">シェア</p>
+        <span id="share-modal-close" class="close-button">&times;</span>
+      </div>
+      <img src="qrcode.png" alt="QR Code">
+    </div>
+  </div>
+  
+  <div id="answer-modal" class="modal-overlay hidden">
+    <div class="modal-content answer-modal-content">
+      <p id="answer-result-text" class="answer-result-text"></p>
+      <p id="grading-disclaimer-text" class="grading-disclaimer-text hidden">AIによる採点のため､誤りを含む可能性があります。</p>
+
+      <div id="grading-status-area" class="grading-status-area hidden">
+        <p id="grading-status-text" class="grading-status-text">採点中...</p>
+      </div>
+
+      <div id="grading-error-area" class="grading-error-area hidden">
+        <p id="grading-error-text" class="grading-error-text">時間を空けてもう一度試してください。</p>
+        <button id="grading-retry-button" class="answer-next-button">もう一度</button>
+      </div>
+
+      <div id="answer-correct-area" class="answer-correct-area">
+        <p id="answer-correct-label" class="answer-correct-label">正解</p>
+        <ul id="answer-correct-list" class="answer-correct-list"></ul>
+      </div>
+      <div id="grading-criteria-area" class="answer-explanation-area hidden">
+        <p class="answer-explanation-label">採点基準</p>
+        <p id="grading-criteria-text"></p>
+      </div>
+      <div id="grading-reason-area" class="answer-explanation-area hidden">
+        <p class="answer-explanation-label">AIによる評価理由</p>
+        <p id="grading-reason-text"></p>
+      </div>
+      <div id="answer-explanation-area" class="answer-explanation-area hidden">
+        <p class="answer-explanation-label">解説</p>
+        <p id="answer-explanation-text"></p>
+      </div>
+      <div id="answer-modal-actions-row" class="answer-modal-actions">
+        <button id="show-problem-button" class="secondary-next-button">問題を表示</button>
+        <button id="answer-modal-next-button" class="answer-next-button">次へ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="result-modal" class="modal-overlay hidden">
+    <div class="modal-content answer-modal-content">
+      <p class="result-title">結果発表</p>
+      <p id="result-score-text" class="result-score-text"></p>
+      <button id="write-impression-button" class="secondary-next-button">感想を書く</button>
+      <button id="result-home-button" class="answer-next-button">ホームにもどる</button>
+    </div>
+  </div>
+
+  <div id="impression-modal" class="modal-overlay top-sheet hidden">
+    <div class="modal-content top-sheet-content">
+      <div class="modal-header">
+        <p class="title">感想を書く</p>
+        <span id="impression-modal-close" class="close-button">&times;</span>
+      </div>
+      <textarea id="impression-input" rows="5" placeholder="この問題集の感想を書いてみましょう"></textarea>
+      <button id="impression-save-button" class="answer-next-button">保存する</button>
+    </div>
+  </div>
+
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <div id="accountSettingsDrawer" class="drawer">
+    <div class="drawer-header">
+      <p>アカウント設定</p>
+      <span id="drawerCloseButton" class="drawer-close-button">&times;</span>
+    </div>
+    <div class="drawer-content">
+      <div class="drawer-section">
+        <p class="title">現在のユーザー</p>
+        <p>ID: <strong id="drawerUserId">取得中...</strong><span></span></p>
+        
+        <button id="logout-button" class="logout-button normal-button">ログアウト</button>
+      </div>
+      <div class="drawer-section">
+        <p class="title">ユーザーネーム</p>
+        <p>現在の名前: <strong id="drawerUsername">取得中...</strong></p>
+        <input type="text" id="newUsernameInput" placeholder="新しい名前">
+        <button id="changeUsernameButton" class="normal-button" disabled="true">名前を変更</button>
+        <p id="username-message"></p>
+      </div>
+    </div>
+</div>
+  
+  
+  <header id="app-header">
+    <div id="title-area">
+      <p id="header-title">問題投稿</p>
+      <button id="share-modal-btn">シェア</button>
+    </div>
+    
+    <div id="user-data">
+      <button id="setting-button">アカウント情報</button>
+    </div>
+  </header>
+  
+  
+  <main>
+    <div class="books-container">
+      <button id="home-button" class="home-button" aria-label="ホームへもどる">&larr; ホームへもどる</button>
+      <div id="title-area">
+        <p id="title-area-title">loading...</p>
+        <div id="gauge-area">
+          <div class="gauge-container">
+          <div id="gauge-bar" class="gauge-bar"></div>
+        </div>
+          <p id="title-area-count"><span id="now-problem-count"></span>/<span id="all-problems-count"></span></p>
+        </div>
+      </div>
+      
+      <div id="problem-area" class="problem-area hidden">
+        <p id="answer-type-text"></p>
+        <p id="problem-text"></p>
+        <img id="problem-image" class="problem-image hidden" alt="問題の画像">
+        <div id="choices-area" class="choices-area"></div>
+        <input type="text" id="text-answer-input" class="text-answer-input hidden" placeholder="答えを入力してください" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <textarea id="descriptive-answer-input" class="descriptive-answer-input hidden" rows="6" placeholder="ここに解答を記述してください" autocorrect="off" spellcheck="false"></textarea>
+        <div class="answer-actions">
+          <button id="answer-button">答える</button>
+          <button id="skip-button" class="skip-button">スキップ</button>
+        </div>
+        <button id="view-explanation-button" class="answer-next-button hidden">解説をみる</button>
+      </div>
+    </div>
+  </main>
+  
+  
+  
+  <script src="answerScript.js"></script>
+</html>

@@ -1,0 +1,104 @@
+<html lang="ja">
+  
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>問題投稿</title>
+  <meta name="apple-mobile-web-app-capable" content="yes"> 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="answerCardStyle.css">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+  
+<body>
+  <div id="loading-overlay">
+    <h1>loading...</h1>
+    <p>カードを読み込んでいます｡</p>
+  </div>
+
+  <div id="no-permission-overlay" class="hidden">
+    <h1>解答できません</h1>
+    <p>この暗記カードを解く権限がありません。</p>
+    <a href="./app.html?type=cards" class="answer-next-button">ホームにもどる</a>
+  </div>
+
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <div id="accountSettingsDrawer" class="drawer">
+    <div class="drawer-header">
+      <p>アカウント設定</p>
+      <span id="drawerCloseButton" class="drawer-close-button">&times;</span>
+    </div>
+    <div class="drawer-content">
+      <div class="drawer-section">
+        <p class="title">現在のユーザー</p>
+        <p>ID: <strong id="drawerUserId">取得中...</strong><span></span></p>
+        <button id="logout-button" class="logout-button normal-button">ログアウト</button>
+      </div>
+    </div>
+  </div>
+  
+  <header id="app-header">
+    <div id="title-area">
+      <p id="header-title">問題投稿</p>
+    </div>
+    <div id="user-data">
+      <button id="setting-button">アカウント情報</button>
+    </div>
+  </header>
+  
+  <main>
+    <div class="books-container">
+      <button id="home-button" class="home-button" aria-label="ホームへもどる">&larr; ホームへもどる</button>
+      <div id="title-area">
+        <p id="title-area-title">loading...</p>
+        <div id="gauge-area">
+          <div class="gauge-container">
+            <div id="gauge-bar" class="gauge-bar"></div>
+          </div>
+          <p id="title-area-count"><span id="now-problem-count"></span>/<span id="all-problems-count"></span></p>
+        </div>
+      </div>
+
+      <div id="card-container" class="card-container hidden">
+        <div class="flip-card-container">
+          <div class="flip-card-inner" id="flip-card">
+            <div class="flip-card-front">
+              <p id="card-front-text">loading...</p>
+              <button id="show-back-button">答えをみる</button>
+            </div>
+            <div class="flip-card-back">
+              <p id="card-back-text">loading...</p>
+              <button id="next-card-button">次へ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="card-finished-area" class="card-finished-area hidden">
+        <p class="card-finished-title">終了！</p>
+        <p class="card-finished-text">お疲れさまでした。</p>
+        <button id="write-impression-button" class="secondary-next-button">感想を書く</button>
+        <button id="finished-home-button" class="answer-next-button">ホームにもどる</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="impression-modal" class="modal-overlay top-sheet hidden">
+    <div class="modal-content top-sheet-content">
+      <div class="modal-header">
+        <p class="title">感想を書く</p>
+        <span id="impression-modal-close" class="close-button">&times;</span>
+      </div>
+      <textarea id="impression-input" rows="5" placeholder="この暗記カードの感想を書いてみましょう"></textarea>
+      <button id="impression-save-button" class="answer-next-button">保存する</button>
+    </div>
+  </div>
+  
+  <script src="answerCardScript.js"></script>
+</html>

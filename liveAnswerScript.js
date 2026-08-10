@@ -600,17 +600,14 @@ function showAnswerRevealBanner() {
   setPhase(phaseQuestion);
   renderQuestionPhase();
 
-  answerRevealBanner.classList.remove("hidden", "correct", "incorrect", "neutral");
+  answerRevealBanner.classList.remove("hidden");
   if (!myAnswer) {
     answerRevealText.textContent = "未回答...";
-    answerRevealBanner.classList.add("neutral");
   } else if (myAnswer.correct) {
     answerRevealText.textContent = "正解！";
-    answerRevealBanner.classList.add("correct");
     LiveAudio.playCorrect();
   } else {
     answerRevealText.textContent = "不正解...";
-    answerRevealBanner.classList.add("incorrect");
     LiveAudio.playIncorrect();
   }
 
