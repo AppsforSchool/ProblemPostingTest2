@@ -690,8 +690,20 @@ body {
   max-width: 480px;
   box-shadow: var(--shadow-lg);
   color: var(--text);
+  animation: modal-pop-in 0.2s var(--ease);
 }
-.top-sheet-content { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+@keyframes modal-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.top-sheet-content {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  animation: sheet-slide-up 0.25s var(--ease);
+}
+@keyframes sheet-slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -719,6 +731,9 @@ body {
 .close-button:hover {
   background: rgba(255, 255, 255, 0.18);
 }
+#live-share-modal .modal-content {
+  background: rgba(28, 22, 48, 0.55);
+}
 .live-share-qr-wrap {
   display: flex;
   justify-content: center;
@@ -731,6 +746,14 @@ body {
 .live-share-qr {
   width: 200px;
   height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.live-share-qr canvas,
+.live-share-qr svg {
+  width: 100% !important;
+  height: 100% !important;
 }
 .live-share-url {
   font-size: 0.78rem;

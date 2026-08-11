@@ -69,13 +69,53 @@ function updateAudioMuteButtonLabel() {
   audioMuteButton.innerHTML = LiveAudio.iconMarkup(LiveAudio.isMuted());
 }
 
-// ★ テーマに合わせて白抜き・背景透過のQRコードを生成する(quickchart.ioのQR API)
+// ★ テーマカラーのグラデーション・角丸モジュールのQRコードを、qr-code-stylingでその場で描画する
+let liveShareQrCode = null;
 function openLiveShareModal(targetBookId) {
   const targetUrl = new URL(`app.html#${targetBookId}`, window.location.href).href;
   liveShareUrl.textContent = targetUrl;
-  liveShareQr.src = `https://quickchart.io/qr?text=${encodeURIComponent(
-    targetUrl
-  )}&size=240&margin=1&dark=ffffff&light=0000&ecLevel=M`;
+
+  const qrOptions = {
+    width: 200,
+    height: 200,
+    type: "svg",
+    data: targetUrl,
+    margin: 4,
+    qrOptions: { errorCorrectionLevel: "M" },
+    backgroundOptions: { color: "rgba(0,0,0,0)" },
+    dotsOptions: {
+      type: "rounded",
+      gradient: {
+        type: "linear",
+        rotation: Math.PI / 4,
+        colorStops: [
+          { offset: 0, color: "#CE579B" },
+          { offset: 1, color: "#5b6ee8" }
+        ]
+      }
+    },
+    cornersSquareOptions: {
+      type: "extra-rounded",
+      gradient: {
+        type: "linear",
+        rotation: Math.PI / 4,
+        colorStops: [
+          { offset: 0, color: "#CE579B" },
+          { offset: 1, color: "#5b6ee8" }
+        ]
+      }
+    },
+    cornersDotOptions: { type: "dot", color: "#5b6ee8" }
+  };
+
+  if (!liveShareQrCode) {
+    liveShareQrCode = new QRCodeStyling(qrOptions);
+    liveShareQr.innerHTML = "";
+    liveShareQrCode.append(liveShareQr);
+  } else {
+    liveShareQrCode.update(qrOptions);
+  }
+
   liveShareModal.classList.remove("hidden");
 }
 
