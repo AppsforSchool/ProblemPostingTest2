@@ -56,6 +56,7 @@ let finishedMyRankText, finishedLeaderboardArea, finishedButtonsArea, writeImpre
 
 let impressionModal, impressionModalClose, impressionInput, impressionSaveButton;
 let audioMuteButton;
+let liveShareModal, liveShareModalClose, liveShareQr, liveShareUrl, waitingShareButton;
 let bgmStarted = false;
 let lastRenderedStatus = null;
 let resultsRevealTimeoutHandle = null;
@@ -63,6 +64,16 @@ let answerRevealBanner, answerRevealText;
 
 function updateAudioMuteButtonLabel() {
   audioMuteButton.innerHTML = LiveAudio.iconMarkup(LiveAudio.isMuted());
+}
+
+// ★ テーマに合わせて白抜き・背景透過のQRコードを生成する(quickchart.ioのQR API)
+function openLiveShareModal(targetBookId) {
+  const targetUrl = new URL(`app.html#${targetBookId}`, window.location.href).href;
+  liveShareUrl.textContent = targetUrl;
+  liveShareQr.src = `https://quickchart.io/qr?text=${encodeURIComponent(
+    targetUrl
+  )}&size=240&margin=1&dark=ffffff&light=0000&ecLevel=M`;
+  liveShareModal.classList.remove("hidden");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -119,6 +130,16 @@ document.addEventListener("DOMContentLoaded", () => {
   audioMuteButton.addEventListener("click", () => {
     LiveAudio.toggleMuted();
     updateAudioMuteButtonLabel();
+  });
+
+  liveShareModal = document.getElementById("live-share-modal");
+  liveShareModalClose = document.getElementById("live-share-modal-close");
+  liveShareQr = document.getElementById("live-share-qr");
+  liveShareUrl = document.getElementById("live-share-url");
+  waitingShareButton = document.getElementById("waiting-share-button");
+  waitingShareButton.addEventListener("click", () => openLiveShareModal(bookId));
+  liveShareModalClose.addEventListener("click", () => {
+    liveShareModal.classList.add("hidden");
   });
 
   leaveWaitingButton.addEventListener("click", leaveSession);

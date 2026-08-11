@@ -63,6 +63,7 @@
 
       <div id="waiting-participants-list" class="participants-list"></div>
       <button id="start-session-button" class="live-next-button start-button-glow">スタート</button>
+      <button id="waiting-share-button" class="live-secondary-button">シェア</button>
       <button id="cancel-recruitment-button" class="live-secondary-button">募集を打ち切る</button>
     </section>
 
@@ -113,6 +114,19 @@
     </section>
 
   </main>
+
+  <div id="live-share-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">この問題集をシェア</p>
+        <span id="live-share-modal-close" class="close-button">&times;</span>
+      </div>
+      <div class="live-share-qr-wrap">
+        <img id="live-share-qr" src="" alt="QRコード" class="live-share-qr">
+      </div>
+      <p id="live-share-url" class="live-share-url"></p>
+    </div>
+  </div>
 
   <script src="liveAudio.js"></script>
   <script src="liveHostScript.js"></script>

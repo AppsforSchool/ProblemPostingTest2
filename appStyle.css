@@ -522,6 +522,16 @@ body {
   white-space: pre-line;
 }
 .recruit-open-button {
+  font-family: "BIZ UDGothic", sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.65rem;
+  width: 100%;
+  text-align: center;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+
   color: #fff;
   background: linear-gradient(120deg, var(--primary), var(--accent));
   box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.35);
@@ -540,6 +550,7 @@ body {
   background: #dbe0e6;
   color: #9aa4ae;
   box-shadow: none;
+  border: none;
   cursor: not-allowed;
 }
 .recruit-open-button:disabled:hover,

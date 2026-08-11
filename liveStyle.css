@@ -702,14 +702,41 @@ body {
 }
 .modal-content .title { font-weight: 700; font-size: 1.05rem; color: var(--text); }
 .close-button {
-  background: var(--surface-alt);
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: var(--text);
   font-size: 1.2rem;
   cursor: pointer;
   width: 2.2rem;
   height: 2.2rem;
+  flex-shrink: 0;
   border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s var(--ease);
+}
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.live-share-qr-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.8rem;
+}
+.live-share-qr {
+  width: 200px;
+  height: 200px;
+}
+.live-share-url {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  word-break: break-all;
 }
 #impression-input {
   font-family: "BIZ UDGothic", sans-serif;
