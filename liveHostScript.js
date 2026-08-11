@@ -370,6 +370,8 @@ function render() {
       chip.textContent = participants[uid].name || uid;
       waitingParticipantsList.appendChild(chip);
     });
+    // ★ 参加者が1人もいない場合はスタートできないようにする
+    startSessionButton.disabled = participantIds.length === 0;
   } else if (status === "countdown") {
     setPhase(phaseCountdown);
     // カウントダウン表示自体はstartSession側のローカルタイマーで駆動
@@ -642,6 +644,8 @@ function escapeHtml(text) {
 // ================= セッション進行 =================
 
 async function startSession() {
+  const participantCount = Object.keys((sessionData && sessionData.participants) || {}).length;
+  if (participantCount === 0) return;
   startSessionButton.disabled = true;
   try {
     const timeLimitSeconds = selectedTimeLimitSeconds;

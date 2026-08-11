@@ -314,6 +314,7 @@ body {
 .live-next-button:active:not(:disabled) { transform: scale(0.98); }
 .live-next-button:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 .start-button-glow { animation: glow-pulse 1.6s ease-in-out infinite; }
+.start-button-glow:disabled { animation: none; }
 @keyframes glow-pulse {
   0%, 100% { box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.35); }
   50% { box-shadow: 0 6px 30px rgba(var(--primary-rgb), 0.7); }

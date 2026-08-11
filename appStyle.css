@@ -524,8 +524,8 @@ body {
 .recruit-open-button {
   font-family: "BIZ UDGothic", sans-serif;
   font-weight: 700;
-  font-size: 0.9rem;
-  padding: 0.65rem;
+  font-size: 1.05rem;
+  padding: 0.8rem 1.2rem;
   width: 100%;
   text-align: center;
   cursor: pointer;

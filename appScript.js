@@ -416,6 +416,17 @@ async function handleLiveSessionUpdate(bookId, session) {
   }
 
   handleFilterChange(justStarted ? bookId : null);
+
+  // ★ 問題集モーダルを開いている最中に募集開始/終了などが起きても、開いたままリアルタイムで反映する
+  if (settingModalType === "book" && settingModalBookId === bookId) {
+    if (bookCache[bookId]) {
+      applyRecruitModeToSettingModal(bookId);
+    } else {
+      // 非公開×他人の問題集が募集終了して見えなくなった場合は、開いたままのモーダルを閉じる
+      settingModal.classList.add("hidden");
+      clearBookHash();
+    }
+  }
 }
 
 async function fetchAndAddBookToCache(bookId) {
@@ -1148,6 +1159,14 @@ function applyRecruitModeToSettingModal(id) {
       recruitStartOpenButton.disabled = !meIsAdmin;
       recruitStartOpenButton.classList.toggle("disabled-feature", !meIsAdmin);
     }
+  }
+
+  // ★ 編集ボタンと参加ボタンが両方隠れているなら、スタートボタンは常に横幅100%にする
+  //   (隣接セレクタでのwidth切り替えはjoin-buttonが間に挟まると効かないため、ここでまとめて判定する)
+  const editHidden = settingModalEditButton.classList.contains("hidden");
+  const joinHidden = joinButton.classList.contains("hidden");
+  if (!settingModalStartButton.classList.contains("hidden")) {
+    settingModalStartButton.classList.toggle("full-width-button", editHidden && joinHidden);
   }
 }
 
