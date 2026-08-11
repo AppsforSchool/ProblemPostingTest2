@@ -132,11 +132,15 @@ body {
 .live-header-badge {
   font-size: 0.7rem;
   font-weight: 700;
+  line-height: 1;
   letter-spacing: 0.06em;
   padding: 0.3rem 0.6rem;
   border-radius: var(--radius-full);
   background: linear-gradient(120deg, var(--primary), var(--accent));
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .live-header-badge.participant-badge {
   background: linear-gradient(120deg, var(--accent), var(--primary));
@@ -773,4 +777,11 @@ body {
   border-radius: var(--radius-md);
   background: var(--surface-alt);
   resize: vertical;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+#impression-input:focus {
+  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.22);
+  outline: none;
 }
