@@ -132,9 +132,8 @@ body {
 .live-header-badge {
   font-size: 0.7rem;
   font-weight: 700;
-  line-height: 1;
   letter-spacing: 0.06em;
-  padding: 0.3rem 0.6rem;
+  padding: 0.42rem 0.65rem;
   border-radius: var(--radius-full);
   background: linear-gradient(120deg, var(--primary), var(--accent));
   flex-shrink: 0;

@@ -1106,7 +1106,7 @@ function handleNextButton() {
   }
 }
 
-// ★ 「募集中/開始済み」表示が消えるタイミング(結果発表・打ち切り)で、問題集の更新日時を今にしておく
+// ★ 「募集中/開始済み」表示が消えるタイミング(結果発表・中止)で、問題集の更新日時を今にしておく
 function bumpBookUpdatedAt() {
   db.collection("ProblemPosting")
     .doc("books")
@@ -1128,10 +1128,10 @@ function markParticipantsAsSolved() {
     .catch(error => console.error("解答済み記録の更新に失敗しました:", error));
 }
 
-// ★ 「打ち切る」= 途中経過を見せず、その場でブチッと中止する。待機中でも進行中でも同じ動作・同じ文言に統一
+// ★ 「中止」= 途中経過を見せず、その場でブチッと終わらせる。待機中でも進行中でも同じ動作・同じ文言に統一
 async function cancelRecruitment(triggerButton) {
   const button = triggerButton || cancelRecruitmentButton;
-  if (!(await LiveDialog.confirm("募集を打ち切りますか？参加者は強制的に終了され、結果は発表されません。", { danger: true, okText: "打ち切る" }))) return;
+  if (!(await LiveDialog.confirm("募集を中止しますか？参加者は強制的に終了され、結果は発表されません。", { danger: true, okText: "中止する" }))) return;
   button.disabled = true;
   try {
     await sessionRef.update({ status: "cancelled" });
@@ -1139,7 +1139,7 @@ async function cancelRecruitment(triggerButton) {
     window.location.href = "./app.html";
   } catch (error) {
     console.error(error);
-    LiveDialog.alert("募集の打ち切りに失敗しました。");
+    LiveDialog.alert("募集の中止に失敗しました。");
     button.disabled = false;
   }
 }
