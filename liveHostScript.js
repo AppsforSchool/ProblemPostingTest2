@@ -56,6 +56,8 @@ let selectedTimeLimitSeconds = 10;
 let userChangedTimeLimit = false;
 let countdownNumberEl;
 let questionIndexText, questionText, questionImage, questionChoicesArea, questionTimerText, questionTimerBar, questionAnsweredCount, cutoffButton;
+let answerStatusArea;
+let expandedAnswerStatusKey = null;
 let gradingHintText, gradingSubmissionsArea, requestAiGradingButton, gradingErrorText;
 let resultsCorrectArea, resultsLeaderboardArea, nextQuestionButton;
 let finishedLeaderboardArea, finishedButtonsArea, finishedHomeButton;
@@ -145,6 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
   questionText = document.getElementById("host-question-text");
   questionImage = document.getElementById("host-question-image");
   questionChoicesArea = document.getElementById("host-choices-area");
+  answerStatusArea = document.getElementById("answer-status-area");
   questionTimerText = document.getElementById("question-timer-text");
   questionTimerBar = document.getElementById("question-timer-bar");
   questionAnsweredCount = document.getElementById("question-answered-count");
@@ -445,6 +448,8 @@ function renderQuestionPhase() {
   const totalCount = Object.keys(participants).length;
   questionAnsweredCount.textContent = `解答済み: ${answeredCount} / ${totalCount} 人`;
 
+  renderAnswerStatusArea(index, problem, answers, participants, totalCount);
+
   const locked = !!sessionData.locked;
   cutoffButton.disabled = locked;
   cutoffButton.textContent = locked ? "締め切り済み" : "この問題の受付を締め切る";
@@ -453,6 +458,107 @@ function renderQuestionPhase() {
   cutoffButton.classList.toggle("cutoff-emphasis", allAnswered);
 
   updateQuestionTimerDisplay();
+}
+
+// ★ 主催者向け: 全員が何を答えたか見える解答状況パネル
+function renderAnswerStatusArea(index, problem, answers, participants, totalCount) {
+  const answerType = problem[5];
+  answerStatusArea.innerHTML = "";
+
+  if (answerType === "single" || answerType === "multiple") {
+    const choices = problem[1];
+    choices.forEach((choiceText, i) => {
+      const names = [];
+      Object.entries(answers).forEach(([uid, ans]) => {
+        const raw = Array.isArray(ans.raw) ? ans.raw : [];
+        if (raw.includes(i)) names.push((participants[uid] && participants[uid].name) || uid);
+      });
+      const count = names.length;
+      const percent = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
+
+      const row = document.createElement("button");
+      row.type = "button";
+      row.classList.add("answer-status-choice");
+      row.innerHTML =
+        `<span class="answer-status-fill" style="width:${percent}%"></span>` +
+        `<span class="answer-status-label">${escapeHtml(choiceText)}</span>` +
+        `<span class="answer-status-count">${count}人 (${percent}%)</span>`;
+      row.addEventListener("click", () => {
+        const key = `choice-${i}`;
+        expandedAnswerStatusKey = expandedAnswerStatusKey === key ? null : key;
+        renderAnswerStatusArea(index, problem, answers, participants, totalCount);
+      });
+      answerStatusArea.appendChild(row);
+
+      if (expandedAnswerStatusKey === `choice-${i}`) {
+        const namesDiv = document.createElement("div");
+        namesDiv.classList.add("answer-status-names");
+        namesDiv.textContent = names.length > 0 ? names.join("、") : "まだ誰もいません";
+        answerStatusArea.appendChild(namesDiv);
+      }
+    });
+  } else if (answerType === "text") {
+    // ★ 被りがないように、答えられた単語ごとにまとめる
+    const wordMap = new Map(); // word -> [names]
+    Object.entries(answers).forEach(([uid, ans]) => {
+      const word = (ans.raw || "").trim();
+      if (!word) return;
+      const name = (participants[uid] && participants[uid].name) || uid;
+      if (!wordMap.has(word)) wordMap.set(word, []);
+      wordMap.get(word).push(name);
+    });
+
+    if (wordMap.size === 0) {
+      const empty = document.createElement("p");
+      empty.classList.add("answer-status-empty");
+      empty.textContent = "まだ解答がありません";
+      answerStatusArea.appendChild(empty);
+    } else {
+      wordMap.forEach((names, word) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.classList.add("answer-status-word-row");
+        row.innerHTML =
+          `<span class="answer-status-label">${escapeHtml(word)}</span>` +
+          `<span class="answer-status-count">${names.length}人</span>`;
+        row.addEventListener("click", () => {
+          const key = `word-${word}`;
+          expandedAnswerStatusKey = expandedAnswerStatusKey === key ? null : key;
+          renderAnswerStatusArea(index, problem, answers, participants, totalCount);
+        });
+        answerStatusArea.appendChild(row);
+
+        if (expandedAnswerStatusKey === `word-${word}`) {
+          const namesDiv = document.createElement("div");
+          namesDiv.classList.add("answer-status-names");
+          namesDiv.textContent = names.join("、");
+          answerStatusArea.appendChild(namesDiv);
+        }
+      });
+    }
+  } else if (answerType === "descriptive") {
+    // ★ 被りはあってよい。参加者の人数分だけ、解答と名前を一覧表示する
+    const rows = Object.entries(answers).map(([uid, ans]) => ({
+      name: (participants[uid] && participants[uid].name) || uid,
+      text: ans.raw || ""
+    }));
+
+    if (rows.length === 0) {
+      const empty = document.createElement("p");
+      empty.classList.add("answer-status-empty");
+      empty.textContent = "まだ解答がありません";
+      answerStatusArea.appendChild(empty);
+    } else {
+      rows.forEach(r => {
+        const row = document.createElement("div");
+        row.classList.add("answer-status-descriptive-row");
+        row.innerHTML =
+          `<span class="answer-status-descriptive-name">${escapeHtml(r.name)}</span>` +
+          `<span class="answer-status-descriptive-text">${escapeHtml(r.text)}</span>`;
+        answerStatusArea.appendChild(row);
+      });
+    }
+  }
 }
 
 function updateQuestionTimerDisplay() {
@@ -690,6 +796,7 @@ function showCountdownNumber(count) {
 async function beginQuestion(index) {
   const problem = problemsData[index];
   if (!problem) return;
+  expandedAnswerStatusKey = null;
 
   const currentQuestion = {
     index,

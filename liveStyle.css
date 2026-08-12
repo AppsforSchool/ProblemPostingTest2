@@ -541,6 +541,120 @@ body {
   width: 100%;
 }
 
+/* ---- 主催者向け: 全員の解答状況 ---- */
+.answer-status-heading {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  align-self: flex-start;
+  margin-top: 0.2rem;
+}
+.answer-status-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.answer-status-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: left;
+  width: 100%;
+}
+.answer-status-choice {
+  position: relative;
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-alt);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  font-family: "BIZ UDGothic", sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  transition: border-color 0.2s var(--ease);
+}
+.answer-status-choice:hover {
+  border-color: var(--primary);
+}
+.answer-status-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(120deg, rgba(var(--primary-rgb), 0.4), rgba(var(--accent-rgb), 0.4));
+  transition: width 0.4s var(--ease);
+  z-index: 0;
+}
+.answer-status-label {
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.answer-status-count {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.answer-status-names {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border);
+  text-align: left;
+  width: 100%;
+}
+.answer-status-word-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-alt);
+  cursor: pointer;
+  font-family: "BIZ UDGothic", sans-serif;
+  text-align: left;
+  transition: border-color 0.2s var(--ease);
+}
+.answer-status-word-row:hover {
+  border-color: var(--primary);
+}
+.answer-status-descriptive-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-alt);
+  text-align: left;
+  width: 100%;
+}
+.answer-status-descriptive-name {
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: var(--primary);
+}
+.answer-status-descriptive-text {
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: pre-line;
+}
+
 .text-answer-input, .descriptive-answer-input {
   font-family: "BIZ UDGothic", sans-serif;
   font-size: 0.95rem;
