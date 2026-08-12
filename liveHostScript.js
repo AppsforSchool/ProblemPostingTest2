@@ -376,8 +376,11 @@ function render() {
     // ★ 参加者が1人もいない場合はスタートできないようにする
     startSessionButton.disabled = participantIds.length === 0;
   } else if (status === "countdown") {
-    setPhase(phaseCountdown);
-    // カウントダウン表示自体はstartSession側のローカルタイマーで駆動
+    // ★ カウントダウンはローカルのタイマーだけで進行させる。RTDBの再通知(ServerValue.TIMESTAMPの
+    //   確定タイミングなど)で何度もここに来ても、初回の切り替わり以外は完全に無視する
+    if (statusChanged) {
+      setPhase(phaseCountdown);
+    }
   } else if (status === "question") {
     setPhase(phaseQuestion);
     if (statusChanged) LiveAudio.playQuestionStart();
@@ -1131,7 +1134,7 @@ function markParticipantsAsSolved() {
 // ★ 「中止」= 途中経過を見せず、その場でブチッと終わらせる。待機中でも進行中でも同じ動作・同じ文言に統一
 async function cancelRecruitment(triggerButton) {
   const button = triggerButton || cancelRecruitmentButton;
-  if (!(await LiveDialog.confirm("募集を中止しますか？参加者は強制的に終了され、結果は発表されません。", { danger: true, okText: "中止する" }))) return;
+  if (!(await LiveDialog.confirm("ライブを中止しますか？参加者は強制的に終了され、結果は発表されません。", { danger: true, okText: "中止する" }))) return;
   button.disabled = true;
   try {
     await sessionRef.update({ status: "cancelled" });
