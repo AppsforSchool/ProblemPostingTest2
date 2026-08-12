@@ -19,13 +19,13 @@ const rtdb = firebase.database();
 window.addEventListener("error", event => {
   const message = (event.error && event.error.message) || event.message || "不明なエラー";
   console.error("Uncaught error:", event.error || event.message);
-  alert("予期しないエラーが発生しました:\n" + message);
+  LiveDialog.alert("予期しないエラーが発生しました:\n" + message);
 });
 window.addEventListener("unhandledrejection", event => {
   const reason = event.reason;
   const message = (reason && reason.message) || String(reason);
   console.error("Unhandled promise rejection:", reason);
-  alert("予期しないエラーが発生しました:\n" + message);
+  LiveDialog.alert("予期しないエラーが発生しました:\n" + message);
 });
 
 // ★ 記述式の一括採点に使うGeminiモデル。answerScript.jsと合わせておく
@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     bookId = getParmFromUrl("id");
     if (!bookId) {
-      alert("問題集が指定されていません。");
+      LiveDialog.alert("問題集が指定されていません。");
       window.location.href = "./app.html";
       return;
     }
@@ -236,7 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error(error);
       loadingOverlay.classList.add("hidden");
-      alert("読み込みに失敗しました。\n" + error);
+      LiveDialog.alert("読み込みに失敗しました。\n" + error);
     }
   });
 });
@@ -320,7 +320,7 @@ function attachSessionListener() {
     error => {
       console.error("セッション情報の取得に失敗しました:", error);
       loadingOverlay.classList.add("hidden");
-      alert("セッション情報の取得に失敗しました。権限設定をご確認ください。\n" + error.message);
+      LiveDialog.alert("セッション情報の取得に失敗しました。権限設定をご確認ください。\n" + error.message);
     }
   );
 }
@@ -764,7 +764,7 @@ async function startSession() {
     runLocalCountdown(() => beginQuestion(0));
   } catch (error) {
     console.error(error);
-    alert("開始に失敗しました。");
+    LiveDialog.alert("開始に失敗しました。");
     startSessionButton.disabled = false;
   }
 }
@@ -1131,7 +1131,7 @@ function markParticipantsAsSolved() {
 // ★ 「打ち切る」= 途中経過を見せず、その場でブチッと中止する。待機中でも進行中でも同じ動作・同じ文言に統一
 async function cancelRecruitment(triggerButton) {
   const button = triggerButton || cancelRecruitmentButton;
-  if (!confirm("募集を打ち切りますか？参加者は強制的に終了され、結果は発表されません。")) return;
+  if (!(await LiveDialog.confirm("募集を打ち切りますか？参加者は強制的に終了され、結果は発表されません。", { danger: true, okText: "打ち切る" }))) return;
   button.disabled = true;
   try {
     await sessionRef.update({ status: "cancelled" });
@@ -1139,7 +1139,7 @@ async function cancelRecruitment(triggerButton) {
     window.location.href = "./app.html";
   } catch (error) {
     console.error(error);
-    alert("募集の打ち切りに失敗しました。");
+    LiveDialog.alert("募集の打ち切りに失敗しました。");
     button.disabled = false;
   }
 }

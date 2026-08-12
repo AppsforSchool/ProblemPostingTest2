@@ -19,13 +19,13 @@ const rtdb = firebase.database();
 window.addEventListener("error", event => {
   const message = (event.error && event.error.message) || event.message || "不明なエラー";
   console.error("Uncaught error:", event.error || event.message);
-  alert("予期しないエラーが発生しました:\n" + message);
+  LiveDialog.alert("予期しないエラーが発生しました:\n" + message);
 });
 window.addEventListener("unhandledrejection", event => {
   const reason = event.reason;
   const message = (reason && reason.message) || String(reason);
   console.error("Unhandled promise rejection:", reason);
-  alert("予期しないエラーが発生しました:\n" + message);
+  LiveDialog.alert("予期しないエラーが発生しました:\n" + message);
 });
 
 let myUserId = "";
@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     bookId = getParmFromUrl("id");
     if (!bookId) {
-      alert("問題集が指定されていません。");
+      LiveDialog.alert("問題集が指定されていません。");
       window.location.href = "./app.html";
       return;
     }
@@ -234,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (error && error.message === "ALREADY_STARTED") return;
       console.error(error);
       loadingOverlay.classList.add("hidden");
-      alert("読み込みに失敗しました。\n" + error);
+      LiveDialog.alert("読み込みに失敗しました。\n" + error);
     }
   });
 });
@@ -270,7 +270,7 @@ async function ensureJoined() {
 }
 
 async function leaveSession() {
-  if (!confirm("参加を取り消しますか？")) return;
+  if (!(await LiveDialog.confirm("参加を取り消しますか？", { danger: true, okText: "取り消す" }))) return;
   try {
     await rtdb.ref(`liveSessions/${bookId}/participants/${myUserId}`).remove();
   } catch (error) {
@@ -341,7 +341,7 @@ function attachSessionListener() {
     error => {
       console.error("セッション情報の取得に失敗しました:", error);
       loadingOverlay.classList.add("hidden");
-      alert("セッション情報の取得に失敗しました。権限設定をご確認ください。\n" + error.message);
+      LiveDialog.alert("セッション情報の取得に失敗しました。権限設定をご確認ください。\n" + error.message);
     }
   );
 }
@@ -648,7 +648,7 @@ async function submitAnswer() {
     incrementMonthlyProblemCount();
   } catch (error) {
     console.error(error);
-    alert("解答の送信に失敗しました。");
+    LiveDialog.alert("解答の送信に失敗しました。");
     submitAnswerButton.disabled = false;
   }
 }
@@ -899,11 +899,11 @@ async function saveImpression() {
       .collection("data")
       .doc(bookId)
       .update({ [`impressions.${myUserId}`]: text });
-    alert("感想を保存しました。");
+    LiveDialog.alert("感想を保存しました。");
     impressionModal.classList.add("hidden");
   } catch (error) {
     console.error(error);
-    alert("感想の保存に失敗しました。");
+    LiveDialog.alert("感想の保存に失敗しました。");
   } finally {
     impressionSaveButton.disabled = false;
   }

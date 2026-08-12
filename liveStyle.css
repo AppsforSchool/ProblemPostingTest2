@@ -853,6 +853,37 @@ body {
 #live-share-modal .modal-content {
   background: rgba(28, 22, 48, 0.55);
 }
+
+/* ---- confirm()/alert()の代わりの独自ダイアログ ---- */
+.app-dialog-content {
+  max-width: 360px;
+  text-align: center;
+}
+.app-dialog-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  margin-bottom: 0.6rem;
+}
+.app-dialog-message {
+  font-size: 0.92rem;
+  color: var(--text);
+  line-height: 1.6;
+  white-space: pre-line;
+  margin-bottom: 1.2rem;
+}
+.app-dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.app-dialog-actions .live-next-button.app-dialog-danger {
+  background: linear-gradient(120deg, #d64545, var(--primary));
+  box-shadow: 0 6px 18px rgba(214, 69, 69, 0.35);
+}
+.app-dialog-actions .live-next-button.app-dialog-danger:hover:not(:disabled) {
+  background: linear-gradient(120deg, #b83a3a, var(--primary-dark));
+}
 .live-share-qr-wrap {
   display: flex;
   justify-content: center;

@@ -128,9 +128,21 @@
     </div>
   </div>
 
+  <div id="app-dialog-modal" class="modal-overlay hidden">
+    <div class="modal-content app-dialog-content">
+      <p id="app-dialog-title" class="app-dialog-title hidden"></p>
+      <p id="app-dialog-message" class="app-dialog-message"></p>
+      <div class="app-dialog-actions">
+        <button id="app-dialog-cancel-button" class="live-secondary-button hidden">キャンセル</button>
+        <button id="app-dialog-ok-button" class="live-next-button">OK</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
 
   <script src="liveAudio.js"></script>
+  <script src="liveDialog.js"></script>
   <script src="liveAnswerScript.js"></script>
 </body>
 </html>
