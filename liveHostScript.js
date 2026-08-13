@@ -1134,7 +1134,7 @@ function markParticipantsAsSolved() {
 // ★ 「中止」= 途中経過を見せず、その場でブチッと終わらせる。待機中でも進行中でも同じ動作・同じ文言に統一
 async function cancelRecruitment(triggerButton) {
   const button = triggerButton || cancelRecruitmentButton;
-  if (!(await LiveDialog.confirm("ライブを中止しますか？参加者は強制的に終了され、結果は発表されません。", { danger: true, okText: "中止する" }))) return;
+  if (!(await LiveDialog.confirm("ライブを中止しますか？", { danger: true, okText: "中止する" }))) return;
   button.disabled = true;
   try {
     await sessionRef.update({ status: "cancelled" });
