@@ -488,7 +488,7 @@ body {
   border-radius: var(--radius-md);
 }
 
-.choices-area, .host-choices-area {
+.choices-area {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -515,30 +515,6 @@ body {
   transform: scale(1.01);
 }
 .choices-area button:disabled { cursor: not-allowed; opacity: 0.7; }
-
-.host-choice-item {
-  padding: 0.7rem 1rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-alt);
-  border: 2px solid var(--border);
-  font-weight: 700;
-  font-size: 0.9rem;
-  text-align: left;
-}
-.host-choice-item.correct {
-  border-color: var(--good);
-  background: rgba(46, 158, 91, 0.1);
-  color: var(--good);
-}
-.host-answer-key-text {
-  font-weight: 700;
-  color: var(--good);
-  background: rgba(46, 158, 91, 0.1);
-  padding: 0.7rem 1rem;
-  border-radius: var(--radius-md);
-  text-align: left;
-  width: 100%;
-}
 
 /* ---- 主催者向け: 全員の解答状況 ---- */
 .answer-status-heading {
@@ -581,6 +557,16 @@ body {
 }
 .answer-status-choice:hover {
   border-color: var(--primary);
+}
+.answer-status-choice.correct,
+.answer-status-word-row.correct,
+.answer-status-descriptive-row.correct {
+  border-color: var(--good);
+}
+.answer-status-correct-mark {
+  color: var(--good);
+  font-weight: 700;
+  font-size: 0.78rem;
 }
 .answer-status-fill {
   position: absolute;
@@ -647,6 +633,9 @@ body {
   font-weight: 700;
   font-size: 0.76rem;
   color: var(--primary);
+}
+.answer-status-descriptive-row.correct .answer-status-descriptive-name {
+  color: var(--good);
 }
 .answer-status-descriptive-text {
   font-size: 0.85rem;
