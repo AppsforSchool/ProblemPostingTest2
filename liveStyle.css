@@ -541,9 +541,9 @@ body {
 .answer-status-choice {
   position: relative;
   width: 100%;
-  padding: 0.55rem 0.8rem;
+  padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--border);
+  border: 2px solid var(--border);
   background: var(--surface-alt);
   overflow: hidden;
   cursor: pointer;
@@ -553,10 +553,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  transition: border-color 0.2s var(--ease);
+  transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease), transform 0.1s var(--ease);
 }
 .answer-status-choice:hover {
-  border-color: var(--primary);
+  border-color: rgba(var(--primary-rgb), 0.4);
+}
+.answer-status-choice:active {
+  transform: scale(0.99);
 }
 .answer-status-choice.correct,
 .answer-status-word-row.correct,
@@ -580,7 +583,7 @@ body {
   position: relative;
   z-index: 1;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   color: var(--text);
 }
 .answer-status-count {
@@ -590,16 +593,6 @@ body {
   font-weight: 700;
   color: var(--text-muted);
   font-size: 0.78rem;
-}
-.answer-status-names {
-  padding: 0.5rem 0.8rem;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: var(--radius-md);
-  border: 1px dashed var(--border);
-  text-align: left;
-  width: 100%;
 }
 .answer-status-word-row {
   display: flex;

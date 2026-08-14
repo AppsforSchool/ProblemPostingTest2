@@ -57,7 +57,6 @@ let userChangedTimeLimit = false;
 let countdownNumberEl;
 let questionIndexText, questionText, questionImage, questionTimerText, questionTimerBar, questionAnsweredCount, cutoffButton;
 let answerStatusArea;
-let expandedAnswerStatusKey = null;
 let gradingHintText, gradingSubmissionsArea, requestAiGradingButton, gradingErrorText;
 let resultsCorrectArea, resultsLeaderboardArea, nextQuestionButton;
 let finishedLeaderboardArea, finishedButtonsArea, finishedHomeButton;
@@ -439,6 +438,12 @@ function renderQuestionPhase() {
   updateQuestionTimerDisplay();
 }
 
+// ★ 解答者名の一覧をモーダルで表示する(選択肢/単語行のクリック時に使用)
+function showAnswerStatusNamesModal(label, names) {
+  const message = names.length > 0 ? names.join("、") : "まだ誰もいません";
+  LiveDialog.alert(message, { title: label });
+}
+
 // ★ 主催者向け: 全員が何を答えたか見える解答状況パネル
 function renderAnswerStatusArea(index, problem, answers, participants, totalCount) {
   const answerType = problem[5];
@@ -468,18 +473,9 @@ function renderAnswerStatusArea(index, problem, answers, participants, totalCoun
         }</span>` +
         `<span class="answer-status-count">${count}人 (${percent}%)</span>`;
       row.addEventListener("click", () => {
-        const key = `choice-${i}`;
-        expandedAnswerStatusKey = expandedAnswerStatusKey === key ? null : key;
-        renderAnswerStatusArea(index, problem, answers, participants, totalCount);
+        showAnswerStatusNamesModal(choiceText, names);
       });
       answerStatusArea.appendChild(row);
-
-      if (expandedAnswerStatusKey === `choice-${i}`) {
-        const namesDiv = document.createElement("div");
-        namesDiv.classList.add("answer-status-names");
-        namesDiv.textContent = names.length > 0 ? names.join("、") : "まだ誰もいません";
-        answerStatusArea.appendChild(namesDiv);
-      }
     });
   } else if (answerType === "text") {
     // ★ 被りがないように単語ごとにまとめつつ、正解の単語は正答者がいなくても常にトップに表示する
@@ -516,18 +512,9 @@ function renderAnswerStatusArea(index, problem, answers, participants, totalCoun
         }</span>` +
         `<span class="answer-status-count">${names.length}人</span>`;
       row.addEventListener("click", () => {
-        const key = `word-${word}`;
-        expandedAnswerStatusKey = expandedAnswerStatusKey === key ? null : key;
-        renderAnswerStatusArea(index, problem, answers, participants, totalCount);
+        showAnswerStatusNamesModal(word, names);
       });
       answerStatusArea.appendChild(row);
-
-      if (expandedAnswerStatusKey === `word-${word}`) {
-        const namesDiv = document.createElement("div");
-        namesDiv.classList.add("answer-status-names");
-        namesDiv.textContent = names.length > 0 ? names.join("、") : "まだ誰もいません";
-        answerStatusArea.appendChild(namesDiv);
-      }
     });
   } else if (answerType === "descriptive") {
     // ★ 模範解答を常にトップに表示し、そのあとに参加者の解答を人数分(被りOK)並べる
@@ -796,7 +783,6 @@ function showCountdownNumber(count) {
 async function beginQuestion(index) {
   const problem = problemsData[index];
   if (!problem) return;
-  expandedAnswerStatusKey = null;
 
   const currentQuestion = {
     index,
