@@ -835,6 +835,20 @@ body {
   background: rgba(28, 22, 48, 0.55);
 }
 
+/* ---- 主催者向け: 解答者名モーダル ---- */
+.answer-status-names-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.answer-status-names-area .answer-status-names-empty {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+
 /* ---- confirm()/alert()の代わりの独自ダイアログ ---- */
 .app-dialog-content {
   max-width: 360px;

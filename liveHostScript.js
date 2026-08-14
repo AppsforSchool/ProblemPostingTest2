@@ -63,6 +63,7 @@ let finishedLeaderboardArea, finishedButtonsArea, finishedHomeButton;
 let audioMuteButton;
 let endLiveEarlyButton;
 let liveShareModal, liveShareModalClose, liveShareQr, liveShareUrl, waitingShareButton;
+let answerStatusNamesModal, answerStatusNamesModalClose, answerStatusNamesTitle, answerStatusNamesArea;
 let bgmStarted = false;
 let lastRenderedStatus = null;
 
@@ -197,6 +198,17 @@ document.addEventListener("DOMContentLoaded", () => {
   waitingShareButton.addEventListener("click", () => openLiveShareModal(bookId));
   liveShareModalClose.addEventListener("click", () => {
     liveShareModal.classList.add("hidden");
+  });
+
+  answerStatusNamesModal = document.getElementById("answer-status-names-modal");
+  answerStatusNamesModalClose = document.getElementById("answer-status-names-modal-close");
+  answerStatusNamesTitle = document.getElementById("answer-status-names-title");
+  answerStatusNamesArea = document.getElementById("answer-status-names-area");
+  answerStatusNamesModalClose.addEventListener("click", () => {
+    answerStatusNamesModal.classList.add("hidden");
+  });
+  answerStatusNamesModal.addEventListener("click", event => {
+    if (event.target === answerStatusNamesModal) answerStatusNamesModal.classList.add("hidden");
   });
 
   rtdb.ref(".info/serverTimeOffset").on("value", snap => {
@@ -440,8 +452,24 @@ function renderQuestionPhase() {
 
 // ★ 解答者名の一覧をモーダルで表示する(選択肢/単語行のクリック時に使用)
 function showAnswerStatusNamesModal(label, names) {
-  const message = names.length > 0 ? names.join("、") : "まだ誰もいません";
-  LiveDialog.alert(message, { title: label });
+  answerStatusNamesTitle.textContent = label;
+  answerStatusNamesArea.innerHTML = "";
+
+  if (names.length === 0) {
+    const empty = document.createElement("p");
+    empty.classList.add("answer-status-names-empty");
+    empty.textContent = "まだ誰もいません";
+    answerStatusNamesArea.appendChild(empty);
+  } else {
+    names.forEach(name => {
+      const chip = document.createElement("span");
+      chip.classList.add("participant-chip");
+      chip.textContent = name;
+      answerStatusNamesArea.appendChild(chip);
+    });
+  }
+
+  answerStatusNamesModal.classList.remove("hidden");
 }
 
 // ★ 主催者向け: 全員が何を答えたか見える解答状況パネル
