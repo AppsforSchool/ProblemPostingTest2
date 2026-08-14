@@ -619,6 +619,7 @@ function buildRanking() {
   const participants = sessionData.participants || {};
   return Object.keys(participants)
     .map(uid => ({ uid, name: (participants[uid] && participants[uid].name) || uid, score: totalScores[uid] || 0 }))
+    .filter(entry => entry.score > 0) // ★ 0点の人はランキングから除外する
     .sort((a, b) => b.score - a.score);
 }
 
