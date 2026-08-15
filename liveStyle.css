@@ -565,34 +565,35 @@ button.answer-status-word-row:disabled {
   margin: 0;
   cursor: pointer;
   z-index: 1;
+  appearance: none;
+  -webkit-appearance: none;
 }
 .toggle-switch-track {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.12);
-  border: 1.5px solid var(--border);
   border-radius: var(--radius-full);
-  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+  transition: background-color 0.2s var(--ease);
+  pointer-events: none;
 }
 .toggle-switch-track::before {
   content: "";
   position: absolute;
-  top: 50%;
+  top: 0.15rem;
   left: 0.15rem;
-  transform: translateY(-50%);
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.2rem;
+  height: 1.2rem;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  transition: left 0.2s var(--ease);
+  transition: transform 0.2s var(--ease);
 }
 .toggle-switch input:checked + .toggle-switch-track {
   background: linear-gradient(120deg, var(--primary), var(--accent));
-  border-color: transparent;
 }
 .toggle-switch input:checked + .toggle-switch-track::before {
-  left: calc(100% - 1.25rem);
+  transform: translateX(1.1rem);
 }
 
 .answer-status-heading {
