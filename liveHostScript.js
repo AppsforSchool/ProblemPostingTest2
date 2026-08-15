@@ -57,6 +57,10 @@ let userChangedTimeLimit = false;
 let countdownNumberEl;
 let questionIndexText, questionText, questionImage, questionTimerText, questionTimerBar, questionAnsweredCount, cutoffButton;
 let answerStatusArea;
+let answerStatusHeading;
+let showAnswerStatusToggle, showCorrectAnswerToggle;
+let showAnswerStatusEnabled = false;
+let showCorrectAnswerEnabled = false;
 let gradingHintText, gradingSubmissionsArea, requestAiGradingButton, gradingErrorText;
 let resultsCorrectArea, resultsLeaderboardArea, nextQuestionButton;
 let finishedLeaderboardArea, finishedButtonsArea, finishedHomeButton;
@@ -147,6 +151,17 @@ document.addEventListener("DOMContentLoaded", () => {
   questionText = document.getElementById("host-question-text");
   questionImage = document.getElementById("host-question-image");
   answerStatusArea = document.getElementById("answer-status-area");
+  answerStatusHeading = document.getElementById("answer-status-heading");
+  showAnswerStatusToggle = document.getElementById("show-answer-status-toggle");
+  showCorrectAnswerToggle = document.getElementById("show-correct-answer-toggle");
+  showAnswerStatusToggle.addEventListener("change", () => {
+    showAnswerStatusEnabled = showAnswerStatusToggle.checked;
+    if (sessionData && sessionData.status === "question") renderQuestionPhase();
+  });
+  showCorrectAnswerToggle.addEventListener("change", () => {
+    showCorrectAnswerEnabled = showCorrectAnswerToggle.checked;
+    if (sessionData && sessionData.status === "question") renderQuestionPhase();
+  });
   questionTimerText = document.getElementById("question-timer-text");
   questionTimerBar = document.getElementById("question-timer-bar");
   questionAnsweredCount = document.getElementById("question-answered-count");
@@ -473,13 +488,41 @@ function showAnswerStatusNamesModal(label, names) {
 }
 
 // ★ 主催者向け: 全員が何を答えたか見える解答状況パネル
+// showAnswerStatusEnabled: 参加人数の内訳(ゲージ・人数・クリックで解答者名)を見せるか
+// showCorrectAnswerEnabled: 正解の強調表示(緑枠・「✓ 正解」・模範解答)を見せるか
 function renderAnswerStatusArea(index, problem, answers, participants, totalCount) {
   const answerType = problem[5];
-  answerStatusArea.innerHTML = "";
 
-  if (answerType === "single" || answerType === "multiple") {
+  const showStatus = showAnswerStatusEnabled;
+  const showCorrect = showCorrectAnswerEnabled;
+
+  // ★ どちらもオフなら、表示すべき情報が無いのでセクションごと隠す
+  const nothingToShow = !showStatus && !showCorrect;
+  answerStatusHeading.classList.toggle("hidden", nothingToShow);
+  answerStatusArea.classList.toggle("hidden", nothingToShow);
+  if (nothingToShow) {
+    answerStatusArea.innerHTML = "";
+    answerStatusArea.dataset.renderKey = "";
+    return;
+  }
+
+  // ★ 同じ問題・同じ表示設定のままの再描画(参加者の解答が増えただけ)かどうかを判定。
+  //   選択式はこの場合だけDOMを作り直さずゲージ幅/人数を更新し、CSSのtransitionで滑らかに変化させる。
+  //   問題が変わった/表示設定が変わったときは、これまで通り作り直す。
+  const renderKey = `${index}|${answerType}|${showStatus}|${showCorrect}`;
+  const isChoiceType = answerType === "single" || answerType === "multiple";
+  const sameContext =
+    isChoiceType &&
+    answerStatusArea.dataset.renderKey === renderKey &&
+    answerStatusArea.children.length === problem[1].length;
+  answerStatusArea.dataset.renderKey = renderKey;
+
+  if (isChoiceType) {
     const choices = problem[1];
     const correctIndices = problem[2];
+
+    if (!sameContext) answerStatusArea.innerHTML = "";
+
     choices.forEach((choiceText, i) => {
       const names = [];
       Object.entries(answers).forEach(([uid, ans]) => {
@@ -488,25 +531,42 @@ function renderAnswerStatusArea(index, problem, answers, participants, totalCoun
       });
       const count = names.length;
       const percent = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
-      const isCorrect = correctIndices.includes(i);
+      const isCorrect = showCorrect && correctIndices.includes(i);
 
-      const row = document.createElement("button");
-      row.type = "button";
-      row.classList.add("answer-status-choice");
-      if (isCorrect) row.classList.add("correct");
-      row.innerHTML =
-        `<span class="answer-status-fill" style="width:${percent}%"></span>` +
-        `<span class="answer-status-label">${escapeHtml(choiceText)}${
+      let row = sameContext ? answerStatusArea.children[i] : null;
+      if (!row) {
+        row = document.createElement("button");
+        row.type = "button";
+        row.classList.add("answer-status-choice");
+        if (!showStatus) row.classList.add("answer-status-choice-plain");
+        if (isCorrect) row.classList.add("correct");
+
+        let html = "";
+        if (showStatus) html += `<span class="answer-status-fill" style="width:${percent}%"></span>`;
+        html += `<span class="answer-status-label">${escapeHtml(choiceText)}${
           isCorrect ? ' <span class="answer-status-correct-mark">✓ 正解</span>' : ""
-        }</span>` +
-        `<span class="answer-status-count">${count}人 (${percent}%)</span>`;
-      row.addEventListener("click", () => {
-        showAnswerStatusNamesModal(choiceText, names);
-      });
-      answerStatusArea.appendChild(row);
+        }</span>`;
+        if (showStatus) html += `<span class="answer-status-count">${count}人 (${percent}%)</span>`;
+        row.innerHTML = html;
+
+        row.disabled = !showStatus;
+        answerStatusArea.appendChild(row);
+      } else {
+        // ★ 既存の行はゲージ幅と人数だけ書き換える(要素は作り直さない)
+        const fillEl = row.querySelector(".answer-status-fill");
+        if (fillEl) fillEl.style.width = `${percent}%`;
+        const countEl = row.querySelector(".answer-status-count");
+        if (countEl) countEl.textContent = `${count}人 (${percent}%)`;
+      }
+
+      // ★ クリックで常に最新の解答者名を見せられるよう、ハンドラは毎回張り替える
+      row.onclick = showStatus ? () => showAnswerStatusNamesModal(choiceText, names) : null;
     });
   } else if (answerType === "text") {
+    answerStatusArea.innerHTML = "";
+
     // ★ 被りがないように単語ごとにまとめつつ、正解の単語は正答者がいなくても常にトップに表示する
+    //   (ただし正解を見せない設定のときは、未回答の正解ワードを補うと答えが漏れてしまうため補わない)
     const correctWords = problem[2] || [];
     const wordMap = new Map(); // word -> [names]
     Object.entries(answers).forEach(([uid, ans]) => {
@@ -518,60 +578,78 @@ function renderAnswerStatusArea(index, problem, answers, participants, totalCoun
     });
 
     const orderedWords = [];
-    correctWords.forEach(w => {
-      if (!orderedWords.includes(w)) orderedWords.push(w);
-      if (!wordMap.has(w)) wordMap.set(w, []);
-    });
-    wordMap.forEach((_, w) => {
-      if (!orderedWords.includes(w)) orderedWords.push(w);
-    });
-
-    orderedWords.forEach(word => {
-      const names = wordMap.get(word) || [];
-      const isCorrect = correctWords.includes(word);
-
-      const row = document.createElement("button");
-      row.type = "button";
-      row.classList.add("answer-status-word-row");
-      if (isCorrect) row.classList.add("correct");
-      row.innerHTML =
-        `<span class="answer-status-label">${escapeHtml(word)}${
-          isCorrect ? ' <span class="answer-status-correct-mark">✓ 正解</span>' : ""
-        }</span>` +
-        `<span class="answer-status-count">${names.length}人</span>`;
-      row.addEventListener("click", () => {
-        showAnswerStatusNamesModal(word, names);
+    if (showCorrect) {
+      correctWords.forEach(w => {
+        if (!orderedWords.includes(w)) orderedWords.push(w);
+        if (!wordMap.has(w)) wordMap.set(w, []);
       });
-      answerStatusArea.appendChild(row);
-    });
-  } else if (answerType === "descriptive") {
-    // ★ 模範解答を常にトップに表示し、そのあとに参加者の解答を人数分(被りOK)並べる
-    const modelRow = document.createElement("div");
-    modelRow.classList.add("answer-status-descriptive-row", "correct");
-    modelRow.innerHTML =
-      `<span class="answer-status-descriptive-name">✓ 模範解答</span>` +
-      `<span class="answer-status-descriptive-text">${escapeHtml(problem[7] || "")}</span>`;
-    answerStatusArea.appendChild(modelRow);
+    }
+    if (showStatus) {
+      wordMap.forEach((_, w) => {
+        if (!orderedWords.includes(w)) orderedWords.push(w);
+      });
+    }
 
-    const rows = Object.entries(answers).map(([uid, ans]) => ({
-      name: (participants[uid] && participants[uid].name) || uid,
-      text: ans.raw || ""
-    }));
-
-    if (rows.length === 0) {
+    if (orderedWords.length === 0 && showStatus) {
       const empty = document.createElement("p");
       empty.classList.add("answer-status-empty");
       empty.textContent = "まだ解答がありません";
       answerStatusArea.appendChild(empty);
-    } else {
-      rows.forEach(r => {
-        const row = document.createElement("div");
-        row.classList.add("answer-status-descriptive-row");
-        row.innerHTML =
-          `<span class="answer-status-descriptive-name">${escapeHtml(r.name)}</span>` +
-          `<span class="answer-status-descriptive-text">${escapeHtml(r.text)}</span>`;
-        answerStatusArea.appendChild(row);
-      });
+    }
+
+    orderedWords.forEach(word => {
+      const names = showStatus ? (wordMap.get(word) || []) : [];
+      const isCorrect = showCorrect && correctWords.includes(word);
+
+      const row = document.createElement("button");
+      row.type = "button";
+      row.classList.add("answer-status-word-row");
+      if (!showStatus) row.classList.add("answer-status-choice-plain");
+      if (isCorrect) row.classList.add("correct");
+      let html = `<span class="answer-status-label">${escapeHtml(word)}${
+        isCorrect ? ' <span class="answer-status-correct-mark">✓ 正解</span>' : ""
+      }</span>`;
+      if (showStatus) html += `<span class="answer-status-count">${names.length}人</span>`;
+      row.innerHTML = html;
+
+      row.disabled = !showStatus;
+      row.onclick = showStatus ? () => showAnswerStatusNamesModal(word, names) : null;
+      answerStatusArea.appendChild(row);
+    });
+  } else if (answerType === "descriptive") {
+    answerStatusArea.innerHTML = "";
+
+    // ★ 模範解答は正解表示がオンのときだけ、参加者の解答一覧は解答状況表示がオンのときだけ出す
+    if (showCorrect) {
+      const modelRow = document.createElement("div");
+      modelRow.classList.add("answer-status-descriptive-row", "correct");
+      modelRow.innerHTML =
+        `<span class="answer-status-descriptive-name">✓ 模範解答</span>` +
+        `<span class="answer-status-descriptive-text">${escapeHtml(problem[7] || "")}</span>`;
+      answerStatusArea.appendChild(modelRow);
+    }
+
+    if (showStatus) {
+      const rows = Object.entries(answers).map(([uid, ans]) => ({
+        name: (participants[uid] && participants[uid].name) || uid,
+        text: ans.raw || ""
+      }));
+
+      if (rows.length === 0) {
+        const empty = document.createElement("p");
+        empty.classList.add("answer-status-empty");
+        empty.textContent = "まだ解答がありません";
+        answerStatusArea.appendChild(empty);
+      } else {
+        rows.forEach(r => {
+          const row = document.createElement("div");
+          row.classList.add("answer-status-descriptive-row");
+          row.innerHTML =
+            `<span class="answer-status-descriptive-name">${escapeHtml(r.name)}</span>` +
+            `<span class="answer-status-descriptive-text">${escapeHtml(r.text)}</span>`;
+          answerStatusArea.appendChild(row);
+        });
+      }
     }
   }
 }

@@ -517,6 +517,84 @@ body {
 .choices-area button:disabled { cursor: not-allowed; opacity: 0.7; }
 
 /* ---- 主催者向け: 全員の解答状況 ---- */
+.answer-status-choice.answer-status-choice-plain {
+  cursor: default;
+}
+.answer-status-choice.answer-status-choice-plain:hover {
+  border-color: var(--border);
+}
+.answer-status-word-row.answer-status-choice-plain {
+  cursor: default;
+}
+.answer-status-word-row.answer-status-choice-plain:hover {
+  border-color: var(--border);
+}
+button.answer-status-choice:disabled,
+button.answer-status-word-row:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.host-display-toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+  width: 100%;
+  margin: 0.3rem 0 0.3rem;
+}
+.host-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 2.6rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.toggle-switch-track {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-full);
+  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.toggle-switch-track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  transform: translateY(-50%);
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: left 0.2s var(--ease);
+}
+.toggle-switch input:checked + .toggle-switch-track {
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  border-color: transparent;
+}
+.toggle-switch input:checked + .toggle-switch-track::before {
+  left: calc(100% - 1.25rem);
+}
+
 .answer-status-heading {
   font-size: 0.78rem;
   font-weight: 700;

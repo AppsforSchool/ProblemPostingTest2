@@ -85,7 +85,24 @@
       <p id="host-question-text" class="host-question-text"></p>
       <img id="host-question-image" class="host-question-image hidden" alt="問題の画像">
 
-      <p class="answer-status-heading">解答状況</p>
+      <div class="host-display-toggles">
+        <label class="host-toggle-row">
+          <span class="toggle-switch">
+            <input type="checkbox" id="show-answer-status-toggle">
+            <span class="toggle-switch-track"></span>
+          </span>
+          <span>解答状況を表示する</span>
+        </label>
+        <label class="host-toggle-row">
+          <span class="toggle-switch">
+            <input type="checkbox" id="show-correct-answer-toggle">
+            <span class="toggle-switch-track"></span>
+          </span>
+          <span>解答を表示する</span>
+        </label>
+      </div>
+
+      <p id="answer-status-heading" class="answer-status-heading">解答状況</p>
       <div id="answer-status-area" class="answer-status-area"></div>
 
       <button id="cutoff-button" class="live-secondary-button">この問題の受付を締め切る</button>
