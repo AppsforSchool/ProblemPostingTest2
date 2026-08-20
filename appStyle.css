@@ -498,6 +498,22 @@ body {
 
   animation: wave 2s linear infinite;
 }
+/* ★ スペシャルライブ優勝の景品(1週間だけ名前が光る)。管理者と同じ配色だが、半分の速度でゆっくり流す */
+#setting-madeBy-p .prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  animation: wave 4s linear infinite;
+}
 .recruit-comment-area {
   text-align: left;
   padding: 0.75rem 0.9rem;
@@ -595,6 +611,60 @@ body {
   background-color: var(--surface);
   box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
   outline: none;
+}
+.host-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 2.6rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.toggle-switch-track {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  transition: background-color 0.2s var(--ease);
+  pointer-events: none;
+}
+.toggle-switch-track::before {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(20, 30, 40, 0.25);
+  transition: transform 0.2s var(--ease);
+}
+.toggle-switch input:checked + .toggle-switch-track {
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+}
+.toggle-switch input:checked + .toggle-switch-track::before {
+  transform: translateX(1.1rem);
 }
 .join-disabled-text {
   font-size: 0.8rem;
@@ -839,6 +909,18 @@ body {
   color: transparent;
   animation: wave 2s linear infinite;
 }
+.impression-card-name.prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wave 4s linear infinite;
+}
 .impression-card-edit-button {
   margin-left: auto;
   flex-shrink: 0;
@@ -932,6 +1014,21 @@ body {
   color: transparent;
 
   animation: wave 2s linear infinite;
+}
+#drawerUsername.prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  animation: wave 4s linear infinite;
 }
 
 
@@ -1190,6 +1287,21 @@ body {
 
   animation: wave 2s linear infinite;
 }
+.card-madeBy .prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  animation: wave 4s linear infinite;
+}
 
 /* --- アバター（頭文字 or 画像アイコン） --- */
 .avatar-circle {
@@ -1325,6 +1437,18 @@ body {
   color: transparent;
   animation: wave 2s linear infinite;
 }
+.member-name.prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wave 4s linear infinite;
+}
 .member-last-checked {
   font-size: 0.78rem;
   font-weight: 700;
@@ -1411,6 +1535,18 @@ body {
   -webkit-text-fill-color: transparent;
   color: transparent;
   animation: wave 2s linear infinite;
+}
+#profile-name.prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wave 4s linear infinite;
 }
 #profile-name-input {
   font-family: "BIZ UDGothic", sans-serif;

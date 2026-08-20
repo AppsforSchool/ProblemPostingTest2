@@ -63,6 +63,20 @@ function setUserCache(userId, data) {
   return userDataCache[userId];
 }
 
+// ★ Firestoreのタイムスタンプ(またはミリ秒数値)を、比較に使いやすいミリ秒数値へ揃える
+function toMillisOrNull(value) {
+  if (!value) return null;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (typeof value === "number") return value;
+  return null;
+}
+
+// ★ スペシャルライブ優勝の景品(名前が光る)が、現在も有効期限内かどうか
+function hasActivePrize(cached) {
+  const expiresAt = cached && cached.prizeExpiresAt;
+  return typeof expiresAt === "number" && expiresAt > Date.now();
+}
+
 let bookCache = {};
 
 // ★ 「募集中」はFirestoreのフィールドではなく、RTDBの liveSessions を唯一の情報源として判定する
@@ -70,7 +84,7 @@ let liveSessionsCache = {}; // bookId -> セッションデータ(status が fin
 let liveSessionsInitialLoadDone = false;
 
 function isActiveSessionStatus(status) {
-  return !!status && status !== "finished" && status !== "cancelled";
+  return !!status && status !== "finished" && status !== "cancelled" && status !== "ended";
 }
 
 function getParmFromUrl(parm) {
@@ -130,7 +144,7 @@ function createAvatar(name, size, imageUrl) {
   return avatar;
 }
 
-// ★ 指定したユーザーの情報（name/isAdmin/imageUrl/profileText）がキャッシュになければ取得する
+// ★ 指定したユーザーの情報（name/isAdmin/imageUrl/profileText/prizeExpiresAt）がキャッシュになければ取得する
 async function ensureUserCached(userId) {
   if (getUserCache(userId)) return;
 
@@ -141,10 +155,11 @@ async function ensureUserCached(userId) {
       name: userData.name || "名前未設定",
       isAdmin: userData.isAdmin || false,
       imageUrl: userData.imageUrl || "",
-      profileText: userData.profileText || ""
+      profileText: userData.profileText || "",
+      prizeExpiresAt: toMillisOrNull(userData.prizeExpiresAt)
     });
   } else {
-    setUserCache(userId, { name: "不明なユーザー", isAdmin: false, imageUrl: "", profileText: "" });
+    setUserCache(userId, { name: "不明なユーザー", isAdmin: false, imageUrl: "", profileText: "", prizeExpiresAt: null });
   }
 }
 
@@ -238,11 +253,16 @@ document.addEventListener("DOMContentLoaded", () => {
         name: userData.name,
         isAdmin: userData.isAdmin,
         imageUrl: userData.imageUrl || "",
-        profileText: userData.profileText || ""
+        profileText: userData.profileText || "",
+        prizeExpiresAt: toMillisOrNull(userData.prizeExpiresAt)
       });
       meIsAdmin = userData.isAdmin || false;
       drawerUsername.textContent = userData.name;
-      if (meIsAdmin) drawerUsername.classList.add("admin");
+      if (meIsAdmin) {
+        drawerUsername.classList.add("admin");
+      } else if (hasActivePrize(getUserCache(myUserId))) {
+        drawerUsername.classList.add("prize");
+      }
       drawerUserListButton.classList.toggle("hidden", !meIsAdmin);
 
       myUid = userData.uid;
@@ -592,7 +612,11 @@ function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter, a
     const nameSpan = document.createElement("span");
     nameSpan.textContent = makerCached.name;
     nameSpan.classList.add("clickable-user");
-    if (makerCached.isAdmin) nameSpan.classList.add("admin");
+    if (makerCached.isAdmin) {
+      nameSpan.classList.add("admin");
+    } else if (hasActivePrize(makerCached)) {
+      nameSpan.classList.add("prize");
+    }
     nameSpan.addEventListener("click", (e) => {
       e.stopPropagation();
       openProfileModal(book[5]);
@@ -745,7 +769,11 @@ function makeDisplayCards(subjectFilter, gradeFilter, sortOrder, solvedFilter) {
     const nameSpan = document.createElement("span");
     nameSpan.textContent = makerCached.name;
     nameSpan.classList.add("clickable-user");
-    if (makerCached.isAdmin) nameSpan.classList.add("admin");
+    if (makerCached.isAdmin) {
+      nameSpan.classList.add("admin");
+    } else if (hasActivePrize(makerCached)) {
+      nameSpan.classList.add("prize");
+    }
     nameSpan.addEventListener("click", (e) => {
       e.stopPropagation();
       openProfileModal(deck[5]);
@@ -869,6 +897,7 @@ let shuffleToggleRow, flipToggleRow, flipCardsToggle;
 let settingModalType = "book";
 let recruitCommentArea, recruitCommentText, recruitStartOpenButton, joinButton, joinDisabledText;
 let recruitStartModal, recruitStartModalClose, recruitCommentInput, recruitStartConfirmButton;
+let specialLiveToggleRow, specialLiveToggle;
 document.addEventListener("DOMContentLoaded", () => {
   settingModal = document.getElementById("setting-modal");
   settingModalClose = document.getElementById("setting-modal-close");
@@ -895,6 +924,8 @@ document.addEventListener("DOMContentLoaded", () => {
   recruitStartModalClose = document.getElementById("recruit-start-modal-close");
   recruitCommentInput = document.getElementById("recruit-comment-input");
   recruitStartConfirmButton = document.getElementById("recruit-start-confirm-button");
+  specialLiveToggleRow = document.getElementById("special-live-toggle-row");
+  specialLiveToggle = document.getElementById("special-live-toggle");
 
   settingModalClose.addEventListener("click", () => {
     settingModal.classList.add("hidden");
@@ -915,6 +946,7 @@ document.addEventListener("DOMContentLoaded", () => {
     settingModalDescription.textContent = "loading...";
     settingModalMadeByName.textContent = "loading...";
     settingModalMadeByName.classList.remove("admin");
+    settingModalMadeByName.classList.remove("prize");
 
     settingModalEditButton.classList.add("hidden");
     flipCardsToggle.checked = false;
@@ -935,6 +967,8 @@ document.addEventListener("DOMContentLoaded", () => {
     recruitStartConfirmButton.disabled = false;
     recruitStartConfirmButton.textContent = "募集を開始";
     recruitStartModalClose.classList.remove("hidden");
+    specialLiveToggle.checked = false;
+    specialLiveToggleRow.classList.toggle("hidden", !meIsAdmin);
     recruitStartModal.classList.remove("hidden");
   });
   recruitStartModalClose.addEventListener("click", () => {
@@ -945,6 +979,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!bookId || !bookCache[bookId]) return;
     const comment = recruitCommentInput.value.trim();
     const timeLimitSeconds = DEFAULT_RECRUIT_TIME_LIMIT_SECONDS; // ★ 待機画面(liveHost.html)側で主催者が変更可能
+    const isSpecial = meIsAdmin && specialLiveToggle.checked; // ★ スペシャルライブ(景品つき)は管理者のみ設定可能
 
     recruitStartConfirmButton.disabled = true;
     recruitStartConfirmButton.textContent = "セッションを作成中…";
@@ -956,6 +991,7 @@ document.addEventListener("DOMContentLoaded", () => {
         timeLimitSeconds,
         totalQuestions: bookCache[bookId][4] || 0,
         recruitComment: comment,
+        isSpecial,
         currentQuestionIndex: -1,
         currentQuestion: null,
         currentAnswerKey: null,
@@ -972,6 +1008,7 @@ document.addEventListener("DOMContentLoaded", () => {
         status: "waiting",
         timeLimitSeconds,
         recruitComment: comment,
+        isSpecial,
         participants: {}
       };
       recruitStartModal.classList.add("hidden");
@@ -1088,6 +1125,7 @@ function openSettingModal(id) {
   const makerCached = getUserCache(bookCache[id][5]) || {};
   settingModalMadeByName.textContent = makerCached.name;
   settingModalMadeByName.classList.toggle("admin", !!makerCached.isAdmin);
+  settingModalMadeByName.classList.toggle("prize", !makerCached.isAdmin && hasActivePrize(makerCached));
 
   if (bookCache[id][5] === myUserId || meIsAdmin) settingModalEditButton.classList.remove("hidden");
 
@@ -1189,6 +1227,7 @@ function openCardSettingModal(id) {
   const makerCached = getUserCache(deckCache[id][5]) || {};
   settingModalMadeByName.textContent = makerCached.name;
   settingModalMadeByName.classList.toggle("admin", !!makerCached.isAdmin);
+  settingModalMadeByName.classList.toggle("prize", !makerCached.isAdmin && hasActivePrize(makerCached));
 
   if (deckCache[id][5] === myUserId || meIsAdmin) settingModalEditButton.classList.remove("hidden");
 
@@ -1286,7 +1325,11 @@ function openSolvedModal(id, type) {
       const nameSpan = document.createElement("span");
       nameSpan.classList.add("member-name");
       nameSpan.textContent = cached.name || "不明なユーザー";
-      if (cached.isAdmin) nameSpan.classList.add("admin");
+      if (cached.isAdmin) {
+        nameSpan.classList.add("admin");
+      } else if (hasActivePrize(cached)) {
+        nameSpan.classList.add("prize");
+      }
       left.appendChild(nameSpan);
 
       item.appendChild(left);
@@ -1354,7 +1397,8 @@ async function openUserListModal() {
         name,
         isAdmin,
         imageUrl,
-        profileText: userData.profileText || ""
+        profileText: userData.profileText || "",
+        prizeExpiresAt: toMillisOrNull(userData.prizeExpiresAt)
       });
 
       const item = document.createElement("div");
@@ -1369,7 +1413,11 @@ async function openUserListModal() {
       const nameSpan = document.createElement("span");
       nameSpan.classList.add("member-name");
       nameSpan.textContent = name;
-      if (isAdmin) nameSpan.classList.add("admin");
+      if (isAdmin) {
+        nameSpan.classList.add("admin");
+      } else if (hasActivePrize(getUserCache(userId))) {
+        nameSpan.classList.add("prize");
+      }
       left.appendChild(nameSpan);
 
       item.appendChild(left);
@@ -1565,7 +1613,8 @@ async function handleProfileEditOrSave() {
         name: newName,
         isAdmin: previousCache.isAdmin || false,
         imageUrl: finalImageUrl,
-        profileText: newProfileText
+        profileText: newProfileText,
+        prizeExpiresAt: previousCache.prizeExpiresAt || null
       });
 
       if (currentProfileUserId === myUserId) {
@@ -1582,6 +1631,7 @@ async function handleProfileEditOrSave() {
       profileAvatarHolder.appendChild(createAvatar(newName, "large", updated.imageUrl));
 
       profileName.classList.toggle("admin", !!updated.isAdmin);
+      profileName.classList.toggle("prize", !updated.isAdmin && hasActivePrize(updated));
 
       resetProfileEditMode();
       alert("プロフィールを保存しました。");
@@ -1604,6 +1654,7 @@ async function openProfileModal(userId, startEditMode = false) {
   const hasCachedProfileText = !!cached && cached.profileText !== undefined;
   profileName.textContent = (cached && cached.name) || "取得中...";
   profileName.classList.toggle("admin", !!(cached && cached.isAdmin));
+  profileName.classList.toggle("prize", !!cached && !cached.isAdmin && hasActivePrize(cached));
   profileText.textContent = hasCachedProfileText
     ? (cached.profileText || "ステータスメッセージはありません。")
     : "取得中...";
@@ -1629,11 +1680,13 @@ async function openProfileModal(userId, startEditMode = false) {
         name: userData.name || "名前未設定",
         isAdmin: userData.isAdmin || false,
         imageUrl: userData.imageUrl || "",
-        profileText: userData.profileText || ""
+        profileText: userData.profileText || "",
+        prizeExpiresAt: toMillisOrNull(userData.prizeExpiresAt)
       });
 
       profileName.textContent = updated.name;
       profileName.classList.toggle("admin", !!updated.isAdmin);
+      profileName.classList.toggle("prize", !updated.isAdmin && hasActivePrize(updated));
       profileText.textContent = updated.profileText || "ステータスメッセージはありません。";
       profileAvatarCurrentUrl = updated.imageUrl || "";
 
@@ -1707,7 +1760,11 @@ async function openImpressionsModal(bookId, type) {
       const nameSpan = document.createElement("span");
       nameSpan.classList.add("impression-card-name", "clickable-user");
       nameSpan.textContent = cached.name || "不明なユーザー";
-      if (cached.isAdmin) nameSpan.classList.add("admin");
+      if (cached.isAdmin) {
+        nameSpan.classList.add("admin");
+      } else if (hasActivePrize(cached)) {
+        nameSpan.classList.add("prize");
+      }
       nameSpan.addEventListener("click", () => {
         openProfileModal(userId);
       });

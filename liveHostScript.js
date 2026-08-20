@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cutoffButton.addEventListener("click", () => lockQuestion());
   requestAiGradingButton.addEventListener("click", requestAiGrading);
   nextQuestionButton.addEventListener("click", handleNextButton);
-  finishedHomeButton.addEventListener("click", finishAndGoHome);
+  finishedHomeButton.addEventListener("click", handleEndLiveClick);
 
   endLiveEarlyButton = document.getElementById("end-live-early-button");
   endLiveEarlyButton.addEventListener("click", () => cancelRecruitment(endLiveEarlyButton));
@@ -1191,6 +1191,7 @@ function handleNextButton() {
     sessionRef.update({ status: "finished" });
     bumpBookUpdatedAt();
     markParticipantsAsSolved();
+    grantSpecialLivePrize();
   } else {
     nextQuestionButton.disabled = true;
     beginQuestion(index + 1).finally(() => {
@@ -1221,6 +1222,24 @@ function markParticipantsAsSolved() {
     .catch(error => console.error("解答済み記録の更新に失敗しました:", error));
 }
 
+// ★ スペシャルライブなら、最終順位1位の参加者(0点は対象外)に景品を付与する。
+//   景品の実体は、Firestoreのユーザーデータに「景品の期限(タイムスタンプ)」を持たせるだけ。
+//   期限内であれば、名前が管理者と同じように光る(ただしアニメーションは半分の速度)。
+const PRIZE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 1週間
+function grantSpecialLivePrize() {
+  if (!sessionData.isSpecial) return;
+
+  const ranking = buildRanking(); // 0点の参加者は既に除外済み
+  const winner = ranking[0];
+  if (!winner) return; // 0点でない参加者がいなければ、誰にも付与しない
+
+  const expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + PRIZE_DURATION_MS));
+  db.collection("users_random")
+    .doc(winner.uid)
+    .set({ prizeExpiresAt: expiresAt }, { merge: true })
+    .catch(error => console.error("スペシャルライブの景品付与に失敗しました:", error));
+}
+
 // ★ 「中止」= 途中経過を見せず、その場でブチッと終わらせる。待機中でも進行中でも同じ動作・同じ文言に統一
 async function cancelRecruitment(triggerButton) {
   const button = triggerButton || cancelRecruitmentButton;
@@ -1239,4 +1258,17 @@ async function cancelRecruitment(triggerButton) {
 
 function finishAndGoHome() {
   window.location.href = "./app.html";
+}
+
+// ★ 結果発表後、主催者が「ライブを終了する」を押したときの確認〜セッション終了処理。
+//   status を "ended" にすることで、参加者側は「ホストがライブを終了しました。」の専用画面に切り替わる。
+async function handleEndLiveClick() {
+  if (!(await LiveDialog.confirm("ライブを終了しますか？", { okText: "終了する" }))) return;
+  finishedHomeButton.disabled = true;
+  try {
+    await sessionRef.update({ status: "ended" });
+  } catch (error) {
+    console.error("ライブの終了処理に失敗しました:", error);
+  }
+  finishAndGoHome();
 }
