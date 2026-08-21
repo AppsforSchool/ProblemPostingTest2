@@ -45,7 +45,7 @@ let loadingOverlay;
 let loadingStatusText;
 let liveHeaderTitle;
 
-let phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseCancelled;
+let phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseCancelled, phaseSessionEnded;
 
 let waitingParticipantsList, waitingCommentText, leaveWaitingButton;
 let countdownNumberEl;
@@ -128,6 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
   phaseResults = document.getElementById("phase-results");
   phaseFinished = document.getElementById("phase-finished");
   phaseCancelled = document.getElementById("phase-cancelled");
+  phaseSessionEnded = document.getElementById("phase-session-ended");
   answerRevealBanner = document.getElementById("answer-reveal-banner");
   answerRevealText = document.getElementById("answer-reveal-text");
 
@@ -190,6 +191,9 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "./app.html";
   });
   document.getElementById("cancelled-home-button").addEventListener("click", () => {
+    window.location.href = "./app.html";
+  });
+  document.getElementById("session-ended-home-button").addEventListener("click", () => {
     window.location.href = "./app.html";
   });
   writeImpressionButton.addEventListener("click", openImpressionModal);
@@ -354,7 +358,7 @@ function showCancelledMessage(title, hint) {
 }
 
 function setPhase(phase) {
-  [phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseCancelled].forEach(
+  [phaseWaiting, phaseCountdown, phaseQuestion, phaseGrading, phaseResults, phaseFinished, phaseCancelled, phaseSessionEnded].forEach(
     el => el.classList.add("hidden")
   );
   phaseQuestion.classList.remove("question-settled");
@@ -375,7 +379,7 @@ function showResultsStackedBelowQuestion() {
 function render() {
   const status = sessionData.status;
 
-  if (!bgmStarted && status !== "cancelled" && status !== "finished") {
+  if (!bgmStarted && status !== "cancelled" && status !== "finished" && status !== "ended") {
     bgmStarted = true;
     LiveAudio.startBgm();
   }
@@ -428,6 +432,9 @@ function render() {
   } else if (status === "cancelled") {
     LiveAudio.stopBgm();
     setPhase(phaseCancelled);
+  } else if (status === "ended") {
+    LiveAudio.stopBgm();
+    setPhase(phaseSessionEnded);
   }
 }
 
