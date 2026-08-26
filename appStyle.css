@@ -1166,6 +1166,7 @@ body {
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
   pointer-events: none;
+  white-space: nowrap;
 }
 .card-area .card.make-card {
   background-color: var(--surface-alt);
