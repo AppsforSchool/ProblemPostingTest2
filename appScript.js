@@ -90,10 +90,6 @@ function isActiveSessionStatus(status) {
   return !!status && status !== "finished" && status !== "cancelled" && status !== "ended";
 }
 
-function getParmFromUrl(parm) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(parm);
-}
 let deckCache = {};
 let imgbbApiKeyCache = null;
 
@@ -217,7 +213,10 @@ document.addEventListener("DOMContentLoaded", () => {
   gradeSelect.addEventListener("change", handleFilterChange);
   sortOrderSelect.addEventListener("change", handleFilterChange);
   solvedFilterSelect.addEventListener("change", handleFilterChange);
-  contentTypeSelect.addEventListener("change", handleFilterChange);
+  contentTypeSelect.addEventListener("change", () => {
+    resetHashToCurrentType();
+    handleFilterChange();
+  });
 });
 
 function handleFilterChange(animateBookId) {
@@ -274,13 +273,13 @@ document.addEventListener("DOMContentLoaded", () => {
       await loadProblemBooks();
       await loadCardDecks();
 
-      if (getParmFromUrl("type") === "cards") {
-        contentTypeSelect.value = "cards";
-        makeDisplayCards("all", "all", sortOrderSelect.value, "all");
+      if (window.location.hash) {
+        initializeViewFromHash();
       } else {
+        contentTypeSelect.value = "books";
         makeDisplayBooks("all", "all", sortOrderSelect.value, "all");
+        resetHashToCurrentType(); // ★ 履歴を汚さないよう置き換えで #books を補っておく
       }
-      openSettingModalFromHash();
       loadingOverlay.classList.add("hidden");
       updateLastChecked();
       attachLiveSessionsListener();
@@ -460,7 +459,7 @@ async function handleLiveSessionUpdate(bookId, session) {
     } else {
       // 非公開×他人の問題集が募集終了して見えなくなった場合は、開いたままのモーダルを閉じる
       settingModal.classList.add("hidden");
-      clearBookHash();
+      resetHashToCurrentType();
     }
   }
 }
@@ -956,7 +955,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   settingModalClose.addEventListener("click", () => {
     settingModal.classList.add("hidden");
-    clearBookHash();
+    resetHashToCurrentType();
     settingModalSubject.textContent = "不明";
     settingModalGrade.textContent = "不明";
     settingModalCountText.textContent = "--問";
@@ -1269,22 +1268,44 @@ function setBookHash(bookId) {
   const newUrl = `${window.location.pathname}${window.location.search}#${bookId}`;
   history.pushState(null, "", newUrl);
 }
-function clearBookHash() {
-  if (!window.location.hash) return;
-  const newUrl = `${window.location.pathname}${window.location.search}`;
+// ★ 「#books」「#cards」は一覧の種類そのものを表すハッシュとして扱う。
+//   モーダルを閉じた時などは、個別ID(#問題集ID)からこちらに戻す
+function resetHashToCurrentType() {
+  const target = `#${contentTypeSelect.value === "cards" ? "cards" : "books"}`;
+  if (window.location.hash === target) return;
+  const newUrl = `${window.location.pathname}${window.location.search}${target}`;
   history.replaceState(null, "", newUrl);
 }
-function openSettingModalFromHash() {
-  const id = window.location.hash.replace("#", "");
-  if (!id) return;
-  if (bookCache[id]) {
-    contentTypeSelect.value = "books";
-    handleFilterChange();
-    openSettingModal(id);
-  } else if (deckCache[id]) {
+// ★ 起動時、URLハッシュに応じて表示する一覧の種類・開くモーダルを決める。
+//   #books / #cards ならその一覧を表示するだけ、それ以外は問題集/暗記カードIDとみなし、
+//   該当する一覧をバックで表示したうえで、そのモーダルを開く
+function initializeViewFromHash() {
+  const hash = window.location.hash.replace("#", "");
+
+  if (hash === "cards") {
     contentTypeSelect.value = "cards";
-    handleFilterChange();
-    openCardSettingModal(id);
+    makeDisplayCards("all", "all", sortOrderSelect.value, "all");
+    return;
+  }
+  if (hash === "books") {
+    contentTypeSelect.value = "books";
+    makeDisplayBooks("all", "all", sortOrderSelect.value, "all");
+    return;
+  }
+
+  if (bookCache[hash]) {
+    contentTypeSelect.value = "books";
+    makeDisplayBooks("all", "all", sortOrderSelect.value, "all");
+    openSettingModal(hash);
+  } else if (deckCache[hash]) {
+    contentTypeSelect.value = "cards";
+    makeDisplayCards("all", "all", sortOrderSelect.value, "all");
+    openCardSettingModal(hash);
+  } else {
+    // ★ 該当データが無い(存在しないID/権限がない等)場合は、通常の問題集一覧にフォールバックする
+    contentTypeSelect.value = "books";
+    makeDisplayBooks("all", "all", sortOrderSelect.value, "all");
+    resetHashToCurrentType();
   }
 }
 

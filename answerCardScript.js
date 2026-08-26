@@ -75,11 +75,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   homeButton.addEventListener("click", () => {
     if (confirm("本当にやめますか？")) {
-      window.location.href = "./app.html?type=cards";
+      window.location.href = "./app.html#cards";
     }
   });
   finishedHomeButton.addEventListener("click", () => {
-    window.location.href = "./app.html?type=cards";
+    window.location.href = "./app.html#cards";
   });
 
   showBackButton.addEventListener("click", () => {
