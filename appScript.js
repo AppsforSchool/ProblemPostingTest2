@@ -82,6 +82,9 @@ let bookCache = {};
 // ★ 「募集中」はFirestoreのフィールドではなく、RTDBの liveSessions を唯一の情報源として判定する
 let liveSessionsCache = {}; // bookId -> セッションデータ(status が finished/cancelled 以外のもののみ保持)
 let liveSessionsInitialLoadDone = false;
+// ★ 初回読み込み時点で既に募集中だったが、まだ bookCache に無い(非公開の他人の問題集など)ものを覚えておき、
+//   一覧に初めて追加されたタイミングで一度だけハイライトするための集合
+let bookIdsToHighlightOnce = new Set();
 
 function isActiveSessionStatus(status) {
   return !!status && status !== "finished" && status !== "cancelled" && status !== "ended";
@@ -389,13 +392,22 @@ function attachLiveSessionsListener() {
     .once("value")
     .then(snap => {
       const all = snap.val() || {};
+      // ★ 初回表示時、既に募集中のものはすべて強調したい。
+      //   bookCacheに既にある(公開/自分の問題集など)ものはこの場でハイライトし、
+      //   まだ無いもの(非公開の他人の問題集など)は、一覧に追加されたタイミングで改めてハイライトする
+      const highlightNow = new Set();
       Object.entries(all).forEach(([bookId, session]) => {
         if (isActiveSessionStatus(session && session.status)) {
           liveSessionsCache[bookId] = session;
+          if (bookCache[bookId]) {
+            highlightNow.add(bookId);
+          } else {
+            bookIdsToHighlightOnce.add(bookId);
+          }
         }
       });
       liveSessionsInitialLoadDone = true;
-      handleFilterChange();
+      handleFilterChange(highlightNow);
     })
     .catch(reportError);
 
@@ -417,11 +429,15 @@ async function handleLiveSessionUpdate(bookId, session) {
   // ★ 初回読み込みが終わったあとに「非アクティブ→アクティブ」になった時だけ新規開始として扱う
   const justStarted = liveSessionsInitialLoadDone && !wasActive && isActive;
   const justEnded = wasActive && !isActive;
+  // ★ 初回読み込み時点で既に募集中だった問題集が、今まさに一覧へ初めて追加される場合もハイライトする
+  const pendingInitialHighlight = bookIdsToHighlightOnce.has(bookId);
+  if (pendingInitialHighlight) bookIdsToHighlightOnce.delete(bookId);
+  const highlightBookId = justStarted || pendingInitialHighlight ? bookId : null;
 
   if (!bookCache[bookId]) {
     if (isActive) {
       await fetchAndAddBookToCache(bookId);
-      handleFilterChange(justStarted ? bookId : null);
+      handleFilterChange(highlightBookId);
     }
     return;
   }
@@ -435,7 +451,7 @@ async function handleLiveSessionUpdate(bookId, session) {
     }
   }
 
-  handleFilterChange(justStarted ? bookId : null);
+  handleFilterChange(highlightBookId);
 
   // ★ 問題集モーダルを開いている最中に募集開始/終了などが起きても、開いたままリアルタイムで反映する
   if (settingModalType === "book" && settingModalBookId === bookId) {
@@ -540,6 +556,13 @@ async function loadCardDecks() {
   }
 }
 
+// ★ animateTarget は単一のbookId文字列、または複数まとめてハイライトしたい場合のSetのどちらも受け付ける
+function shouldHighlightCard(bookId, animateTarget) {
+  if (!animateTarget) return false;
+  if (animateTarget instanceof Set) return animateTarget.has(bookId);
+  return bookId === animateTarget;
+}
+
 function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter, animateBookId) {
   const listElement = document.getElementById("card-area");
   const loadingText = document.getElementById("loading-text");
@@ -561,7 +584,7 @@ function makeDisplayBooks(subjectFilter, gradeFilter, sortOrder, solvedFilter, a
     const card = document.createElement("div");
     card.classList.add("card");
     card.dataset.bookId = bookId;
-    if (bookId === animateBookId) card.classList.add("just-started-card");
+    if (shouldHighlightCard(bookId, animateBookId)) card.classList.add("just-started-card");
 
     const isPrivate = !!book[10];
     const session = liveSessionsCache[bookId];

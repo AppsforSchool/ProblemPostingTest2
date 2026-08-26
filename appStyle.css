@@ -701,7 +701,7 @@ body {
   cursor: not-allowed;
 }
 .private-badge.recruiting-badge {
-  background: var(--primary);
+  background: linear-gradient(120deg, var(--primary), var(--accent));
 }
 .private-badge.started-badge {
   background: var(--text-muted);
