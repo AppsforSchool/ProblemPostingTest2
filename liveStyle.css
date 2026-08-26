@@ -958,6 +958,18 @@ button.answer-status-word-row:disabled {
 .app-dialog-actions .live-next-button.app-dialog-danger:hover:not(:disabled) {
   background: linear-gradient(120deg, #b83a3a, var(--primary-dark));
 }
+
+/* ---- スペシャルライブ優勝者向け: 景品獲得モーダル ---- */
+#prize-modal .modal-content {
+  max-width: 360px;
+  text-align: center;
+}
+.prize-modal-text {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.75;
+  white-space: pre-line;
+}
 .live-share-qr-wrap {
   display: flex;
   justify-content: center;

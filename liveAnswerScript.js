@@ -55,6 +55,7 @@ let resultMyScoreText, resultCorrectArea, resultLeaderboardArea, resultWaitingHi
 let finishedMyRankText, finishedLeaderboardArea, finishedButtonsArea, writeImpressionButton, finishedHomeButton;
 
 let impressionModal, impressionModalClose, impressionInput, impressionSaveButton;
+let prizeModal, prizeModalClose, prizeModalText;
 let audioMuteButton;
 let liveShareModal, liveShareModalClose, liveShareQr, liveShareUrl, waitingShareButton;
 let bgmStarted = false;
@@ -165,6 +166,14 @@ document.addEventListener("DOMContentLoaded", () => {
   impressionModalClose = document.getElementById("impression-modal-close");
   impressionInput = document.getElementById("impression-input");
   impressionSaveButton = document.getElementById("impression-save-button");
+
+  prizeModal = document.getElementById("prize-modal");
+  prizeModalClose = document.getElementById("prize-modal-close");
+  prizeModalText = document.getElementById("prize-modal-text");
+  prizeModalClose.addEventListener("click", () => prizeModal.classList.add("hidden"));
+  prizeModal.addEventListener("click", event => {
+    if (event.target === prizeModal) prizeModal.classList.add("hidden");
+  });
 
   audioMuteButton = document.getElementById("audio-mute-button");
   updateAudioMuteButtonLabel();
@@ -808,6 +817,8 @@ function renderLeaderboard(container, isFinal) {
 // ★ ②最終結果は3位→2位→(ため)→1位の順に一つずつ演出しながら発表する。
 //   自分が4位以下の場合は、順位表示欄に自分の順位を出す(トップ3の場合はポディウム内に既に表示されるので隠す)
 let finishedRevealStarted = false;
+let prizeModalShown = false;
+const PRIZE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 1週間 (liveHostScript.jsの付与処理と揃えてある)
 
 function renderFinishedPhase(isFreshTransition) {
   const ranking = buildRanking();
@@ -844,14 +855,15 @@ function renderFinishedPhase(isFreshTransition) {
   finishedLeaderboardArea.appendChild(restFragment);
 
   if (isFreshTransition) {
-    revealPodium(podiumRows);
+    revealPodium(podiumRows, ranking);
   } else {
     podiumRows.forEach(row => row.classList.add("podium-reveal-active"));
     showFinishedButtons();
+    maybeShowPrizeModal(ranking);
   }
 }
 
-function revealPodium(podiumRows) {
+function revealPodium(podiumRows, ranking) {
   // podiumRows[0]=1位, [1]=2位, [2]=3位 (既にDOM上には配置済み。表示だけ後から切り替える)
   const revealSeq = [2, 1, 0]; // 3位→2位→1位の順
   const delays = [500, 1300, 2900];
@@ -863,7 +875,10 @@ function revealPodium(podiumRows) {
       if (idx === 0) {
         row.classList.add("podium-first-flourish");
         LiveAudio.playFanfare();
-        setTimeout(showFinishedButtons, 900);
+        setTimeout(() => {
+          showFinishedButtons();
+          maybeShowPrizeModal(ranking);
+        }, 900);
       } else {
         LiveAudio.playReveal();
       }
@@ -874,6 +889,29 @@ function revealPodium(podiumRows) {
 function showFinishedButtons() {
   finishedButtonsArea.classList.remove("hidden");
   requestAnimationFrame(() => finishedButtonsArea.classList.add("show"));
+}
+
+// ★ スペシャルライブで自分が1位だったときだけ、景品獲得モーダルを一度だけ表示する
+function maybeShowPrizeModal(ranking) {
+  if (prizeModalShown) return;
+  if (!sessionData.isSpecial) return;
+  const winner = ranking[0];
+  if (!winner || winner.uid !== myUserId) return;
+
+  prizeModalShown = true;
+
+  // ★ liveHostScript.js側で実際にFirestoreへ書き込む有効期限とは、host/participant間で
+  //   数秒程度ズレる可能性があるが、表示上の目安としては十分な精度
+  const expiresAt = new Date(now() + PRIZE_DURATION_MS);
+  prizeModalText.textContent =
+    `おめでとうございます！\n今日から1週間(${formatDateTime(expiresAt)}まで)、ユーザー名が虹色に発光します！`;
+  prizeModal.classList.remove("hidden");
+}
+
+// ★ Dateを "YYYY/MM/DD HH:MM" 形式に整形する
+function formatDateTime(date) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function escapeHtml(text) {
