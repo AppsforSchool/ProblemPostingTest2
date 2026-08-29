@@ -17,6 +17,7 @@ let currentDeckId = "";
 
 let cardsData = [];
 let currentCardIndex = 0;
+let isTransitioning = false; // ★ カード切替アニメーション中は多重操作を防ぐ
 
 let loadingOverlay;
 let myIsAdmin = false;
@@ -30,7 +31,11 @@ let homeButton;
 
 let cardContainer;
 let cardFinishedArea;
+let flipCardContainerEl;
+let flipCardSlideEl;
 let flipCardEl;
+let flipCardPeekEl;
+let peekCardText;
 let cardFrontText;
 let cardBackText;
 let showBackButton;
@@ -55,7 +60,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   cardContainer = document.getElementById("card-container");
   cardFinishedArea = document.getElementById("card-finished-area");
+  flipCardContainerEl = document.getElementById("flip-card-container");
+  flipCardSlideEl = document.getElementById("flip-card-slide");
   flipCardEl = document.getElementById("flip-card");
+  flipCardPeekEl = document.getElementById("flip-card-peek");
+  peekCardText = document.getElementById("peek-card-text");
   cardFrontText = document.getElementById("card-front-text");
   cardBackText = document.getElementById("card-back-text");
   showBackButton = document.getElementById("show-back-button");
@@ -83,9 +92,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   showBackButton.addEventListener("click", () => {
-    flipCard(true);
+    flipToBack();
   });
-  nextCardButton.addEventListener("click", handleNextCard);
+  nextCardButton.addEventListener("click", () => {
+    goToNextCard();
+  });
+  initSwipeHandlers();
 
   writeImpressionButton.addEventListener("click", openImpressionModal);
   impressionModalClose.addEventListener("click", () => {
@@ -277,6 +289,8 @@ function showCard(index) {
   const nowCardCount = document.getElementById("now-problem-count");
 
   flipCardEl.classList.remove("flipped");
+  flipCardSlideEl.classList.remove("card-exit-left", "card-exit-right", "card-enter");
+  hidePeek();
 
   gaugeBar.style.width = `${((index + 1) / cardsData.length) * 100}%`;
   nowCardCount.textContent = index + 1;
@@ -288,60 +302,184 @@ function showCard(index) {
   nextCardButton.disabled = false;
 }
 
-function flipCard(lock) {
-  if (lock) {
-    showBackButton.disabled = true;
-    nextCardButton.disabled = true;
-    setTimeout(() => {
-      showBackButton.disabled = false;
-      nextCardButton.disabled = false;
-    }, 550);
-  }
-  flipCardEl.classList.toggle("flipped");
+function isCardFlipped() {
+  return flipCardEl.classList.contains("flipped");
 }
 
-function handleNextCard() {
+// ★ 表→裏 のみ(カードの切り替えは伴わない、その場でのフリップ)
+function flipToBack() {
+  if (isTransitioning || isCardFlipped()) return;
+  flipInPlace(true);
+}
+// ★ 裏→表 のみ(カードの切り替えは伴わない、その場でのフリップ)
+function flipToFront() {
+  if (isTransitioning || !isCardFlipped()) return;
+  flipInPlace(false);
+}
+function flipInPlace(toBack) {
+  showBackButton.disabled = true;
+  nextCardButton.disabled = true;
+  setTimeout(() => {
+    showBackButton.disabled = false;
+    nextCardButton.disabled = false;
+  }, 550);
+  flipCardEl.classList.toggle("flipped", toBack);
+}
+
+// ★ 覗き見レイヤー(次/前のカードを、切替アニメーション中だけ後ろにうっすら見せる)
+function showPeek(text, faceClass) {
+  peekCardText.textContent = text;
+  flipCardPeekEl.classList.remove("is-front", "is-back");
+  flipCardPeekEl.classList.add(faceClass);
+  flipCardPeekEl.classList.add("is-active");
+}
+function hidePeek() {
+  flipCardPeekEl.classList.remove("is-active");
+}
+
+// ★ 次のカードへ(現在のカードが左へスライドして抜けていき、後ろに次のカードが現れる)
+function goToNextCard() {
+  if (isTransitioning) return;
+  const nextIndex = currentCardIndex + 1;
+
+  isTransitioning = true;
   showBackButton.disabled = true;
   nextCardButton.disabled = true;
 
-  const nextIndex = currentCardIndex + 1;
-  if (nextIndex < cardsData.length) {
-    // 今は裏面が見えている状態なので、ここで表面のテキストを次のカードの内容に差し替えても見た目には影響しない
-    cardFrontText.textContent = cardsData[nextIndex].front;
+  if (nextIndex >= cardsData.length) {
+    flipCardSlideEl.classList.add("card-exit-left");
+    setTimeout(() => {
+      cardContainer.classList.add("hidden");
+      cardFinishedArea.classList.remove("hidden");
+      recordDeckSolved();
+    }, 320);
+    return;
+  }
 
-    // 裏→表にめくる。裏面が完全に見えなくなってから（＝表に戻り切ってから）裏面の中身を差し替える
-    let finalized = false;
-    const finalizeNextCard = () => {
-      if (finalized) return;
-      finalized = true;
-      flipCardEl.removeEventListener("transitionend", onTransitionEnd);
+  showPeek(cardsData[nextIndex].front, "is-front");
+  flipCardSlideEl.classList.add("card-exit-left");
 
-      currentCardIndex = nextIndex;
+  let finalized = false;
+  const finalize = () => {
+    if (finalized) return;
+    finalized = true;
+    flipCardSlideEl.removeEventListener("transitionend", onTransitionEnd);
+    applyCardChange(nextIndex, false);
+  };
+  const onTransitionEnd = (event) => {
+    if (event.target !== flipCardSlideEl || event.propertyName !== "transform") return;
+    finalize();
+  };
+  flipCardSlideEl.addEventListener("transitionend", onTransitionEnd);
+  // transitionendが発火しない環境に備えたフォールバック
+  setTimeout(finalize, 420);
+}
 
-      const gaugeBar = document.getElementById("gauge-bar");
-      const nowCardCount = document.getElementById("now-problem-count");
-      gaugeBar.style.width = `${((nextIndex + 1) / cardsData.length) * 100}%`;
-      nowCardCount.textContent = nextIndex + 1;
+// ★ 前のカードへ(現在のカードが右へスライドして抜けていき、後ろに前のカードの裏面が現れる)
+function goToPreviousCard() {
+  if (isTransitioning) return;
+  const prevIndex = currentCardIndex - 1;
+  if (prevIndex < 0) return; // 最初のカードより前には戻れない
 
-      cardBackText.textContent = cardsData[nextIndex].back;
+  isTransitioning = true;
+  showBackButton.disabled = true;
+  nextCardButton.disabled = true;
 
-      showBackButton.disabled = false;
-      nextCardButton.disabled = false;
-    };
+  showPeek(cardsData[prevIndex].back, "is-back");
+  flipCardSlideEl.classList.add("card-exit-right");
 
-    const onTransitionEnd = (event) => {
-      if (event.target !== flipCardEl || event.propertyName !== "transform") return;
-      finalizeNextCard();
-    };
-    flipCardEl.addEventListener("transitionend", onTransitionEnd);
-    // transitionendが発火しない環境（reduced motion設定など）に備えたフォールバック
-    setTimeout(finalizeNextCard, 600);
+  let finalized = false;
+  const finalize = () => {
+    if (finalized) return;
+    finalized = true;
+    flipCardSlideEl.removeEventListener("transitionend", onTransitionEnd);
+    applyCardChange(prevIndex, true); // 前のカードは「裏」の状態から再開する
+  };
+  const onTransitionEnd = (event) => {
+    if (event.target !== flipCardSlideEl || event.propertyName !== "transform") return;
+    finalize();
+  };
+  flipCardSlideEl.addEventListener("transitionend", onTransitionEnd);
+  setTimeout(finalize, 420);
+}
 
-    flipCardEl.classList.remove("flipped");
+// ★ カード切替の完了処理。新しいカードの内容を反映し、位置/表裏のリセットはアニメーション無しで瞬時に行う
+function applyCardChange(index, showBack) {
+  currentCardIndex = index;
+
+  const gaugeBar = document.getElementById("gauge-bar");
+  const nowCardCount = document.getElementById("now-problem-count");
+  gaugeBar.style.width = `${((index + 1) / cardsData.length) * 100}%`;
+  nowCardCount.textContent = index + 1;
+
+  cardFrontText.textContent = cardsData[index].front;
+  cardBackText.textContent = cardsData[index].back;
+
+  // ★ このタイミングだけtransitionを止め、位置リセットと表裏の切替を瞬時に行う(見た目には隠れているので違和感が無い)
+  flipCardSlideEl.classList.add("card-enter");
+  flipCardEl.classList.add("no-transition");
+
+  flipCardSlideEl.classList.remove("card-exit-left", "card-exit-right");
+  flipCardEl.classList.toggle("flipped", showBack);
+
+  hidePeek();
+
+  // 強制リフローを挟んでから、次のフレームでtransitionを復活させる
+  void flipCardSlideEl.offsetWidth;
+  requestAnimationFrame(() => {
+    flipCardSlideEl.classList.remove("card-enter");
+    flipCardEl.classList.remove("no-transition");
+  });
+
+  showBackButton.disabled = false;
+  nextCardButton.disabled = false;
+  isTransitioning = false;
+}
+
+// ★ スワイプ操作(ポインターイベントで統一し、タッチ/マウス両対応)
+let swipeStartX = null;
+let swipeStartY = null;
+let swipeActive = false;
+const SWIPE_DISTANCE_THRESHOLD = 60; // px
+
+function initSwipeHandlers() {
+  flipCardContainerEl.addEventListener("pointerdown", onSwipePointerDown);
+  flipCardContainerEl.addEventListener("pointerup", onSwipePointerUp);
+  flipCardContainerEl.addEventListener("pointercancel", onSwipePointerCancel);
+}
+function onSwipePointerDown(event) {
+  if (isTransitioning) return;
+  swipeStartX = event.clientX;
+  swipeStartY = event.clientY;
+  swipeActive = true;
+}
+function onSwipePointerCancel() {
+  swipeActive = false;
+}
+function onSwipePointerUp(event) {
+  if (!swipeActive) return;
+  swipeActive = false;
+  if (isTransitioning) return;
+
+  const dx = event.clientX - swipeStartX;
+  const dy = event.clientY - swipeStartY;
+  // 横方向優位で、かつ一定距離以上動いた場合だけスワイプとして扱う(タップやボタン操作と混同しないため)
+  if (Math.abs(dx) < SWIPE_DISTANCE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+
+  if (dx < 0) {
+    // 右から左へのスワイプ: 裏返す or 次のカードへ
+    if (isCardFlipped()) {
+      goToNextCard();
+    } else {
+      flipToBack();
+    }
   } else {
-    cardContainer.classList.add("hidden");
-    cardFinishedArea.classList.remove("hidden");
-    recordDeckSolved();
+    // 左から右へのスワイプ: 表に返す or 前のカードに戻る
+    if (isCardFlipped()) {
+      flipToFront();
+    } else {
+      goToPreviousCard();
+    }
   }
 }
 
