@@ -161,8 +161,8 @@ document.addEventListener("DOMContentLoaded", () => {
   impressionInput = document.getElementById("impression-input");
   impressionSaveButton = document.getElementById("impression-save-button");
 
-  homeButton.addEventListener("click", () => {
-    if (confirm("本当にやめますか？")) {
+  homeButton.addEventListener("click", async () => {
+    if (await AppDialog.confirm("本当にやめますか？")) {
       window.location.href = "./app.html";
     }
   });
@@ -213,11 +213,11 @@ async function saveImpression() {
       .update({
         [`impressions.${myUserId}`]: text
       });
-    alert("感想を保存しました。");
+    await AppDialog.alert("感想を保存しました。");
     impressionModal.classList.add("hidden");
   } catch (error) {
     console.error("感想の保存エラー:", error);
-    alert("感想の保存に失敗しました。\n" + error);
+    await AppDialog.alert("感想の保存に失敗しました。\n" + error);
   } finally {
     impressionSaveButton.disabled = false;
     impressionSaveButton.textContent = "保存する";
@@ -253,7 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const bookId = getParmFromUrl("id");
       if (!bookId) {
-        alert("問題集が指定されていません。");
+        await AppDialog.alert("問題集が指定されていません。");
         return;
       }
       currentBookId = bookId;
@@ -303,16 +303,16 @@ function incrementMonthlyProblemCount() {
 }
 
 const handleLogout = async () => {
-  const isConfirmed = confirm("ログアウトしますか？");
+  const isConfirmed = await AppDialog.confirm("ログアウトしますか？");
   if (isConfirmed) {
     try {
       await auth.signOut(auth);
       console.log("ログアウトしました！");
-      alert("ログアウトしました。");
+      await AppDialog.alert("ログアウトしました。");
       window.location.href = "./index.html";
     } catch (error) {
       console.error("ログアウトエラー:", error);
-      alert("ログアウトに失敗しました。");
+      await AppDialog.alert("ログアウトに失敗しました。");
     }
   }
 };
@@ -404,7 +404,7 @@ async function loadProblemBook(bookId) {
     return true;
   } catch (error) {
     console.log(error);
-    alert(error);
+    await AppDialog.alert(String(error));
     return false;
   }
 }
@@ -568,13 +568,13 @@ function updateAnswerButtonState() {
 }
 
 
-function handleAnswerSubmit() {
+async function handleAnswerSubmit() {
   const answerType = problemsData[currentProblemIndex][5];
 
   if (answerType === "descriptive") {
     const submittedText = descriptiveAnswerInputEl.value.trim();
     if (!submittedText) {
-      alert("答えを入力してください。");
+      await AppDialog.alert("答えを入力してください。");
       return;
     }
 
@@ -592,7 +592,7 @@ function handleAnswerSubmit() {
     const submittedText = textAnswerInput.value.trim();
 
     if (!submittedText) {
-      alert("答えを入力してください。");
+      await AppDialog.alert("答えを入力してください。");
       return;
     }
 
@@ -617,7 +617,7 @@ function handleAnswerSubmit() {
     .map(button => Number(button.dataset.index));
 
   if (selectedIndices.length === 0) {
-    alert("選択肢を選んでください。");
+    await AppDialog.alert("選択肢を選んでください。");
     return;
   }
 
@@ -850,7 +850,7 @@ async function runDescriptiveGrading(submittedText) {
     showDescriptiveModal({ phase: "result", score: result.score, reason: result.reason });
   } catch (error) {
     console.error("Gemini採点エラー:", error);
-    alert("採点でエラーが発生しました。\n" + (error && error.message ? error.message : error));
+    await AppDialog.alert("採点でエラーが発生しました。\n" + (error && error.message ? error.message : error));
     showDescriptiveModal({ phase: "error" });
   }
 }

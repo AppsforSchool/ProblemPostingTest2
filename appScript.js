@@ -268,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
       drawerUserListButton.classList.toggle("hidden", !meIsAdmin);
 
       myUid = userData.uid;
+      maybeShowNotice(userData.lastOpenedAt); // ★ 最終確認時刻に応じて、お知らせモーダルを表示する(結果を待たずに進める)
 
       //displayVocabularyBooks();
       await loadProblemBooks();
@@ -298,17 +299,30 @@ function updateLastChecked() {
     .catch(error => console.error("最終アクセス日時の更新エラー:", error));
 }
 
+// ★ 最終確認時刻が指定日時より前(=未確認)なら、最新のお知らせをモーダルで表示する。
+//   一度表示されれば、直後にupdateLastChecked()で最終確認時刻が更新されるため、次回以降は表示されない
+const NOTICE_CUTOFF_MS = new Date(2026, 8, 1, 0, 0, 0).getTime(); // 2026/09/01 0:00
+function maybeShowNotice(lastOpenedAt) {
+  const lastMillis = toMillisOrNull(lastOpenedAt) || 0;
+  if (lastMillis < NOTICE_CUTOFF_MS) {
+    AppDialog.alert(
+      "ゲームモード(β版)が公開されました！\nゲーム形式で、複数人で同時に問題を解くことができます。",
+      { title: "お知らせ" }
+    );
+  }
+}
+
 const handleLogout = async () => {
-  const isConfirmed = confirm("ログアウトしますか？");
+  const isConfirmed = await AppDialog.confirm("ログアウトしますか？");
   if (isConfirmed) {
     try {
       await auth.signOut(auth);
       console.log("ログアウトしました！");
-      alert("ログアウトしました。");
+      await AppDialog.alert("ログアウトしました。");
       window.location.href = "./index.html";
     } catch (error) {
       console.error("ログアウトエラー:", error);
-      alert("ログアウトに失敗しました。");
+      await AppDialog.alert("ログアウトに失敗しました。");
     }
   }
 };
@@ -365,7 +379,7 @@ async function loadProblemBooks() {
     }
   } catch (error) {
     console.log(error);
-    alert(error);
+    await AppDialog.alert(String(error));
   }
 }
 
@@ -380,7 +394,7 @@ function attachLiveSessionsListener() {
     console.error("募集状況の取得に失敗しました:", error);
     if (!errorAlertShown) {
       errorAlertShown = true;
-      alert(
+      AppDialog.alert(
         "募集中の問題集の情報取得に失敗しました。RTDBのセキュリティルールで liveSessions 一覧の読み取りが許可されているかご確認ください。\n" +
           (error && error.message ? error.message : error)
       );
@@ -551,7 +565,7 @@ async function loadCardDecks() {
     }
   } catch (error) {
     console.log(error);
-    alert(error);
+    await AppDialog.alert(String(error));
   }
 }
 
@@ -1042,7 +1056,7 @@ document.addEventListener("DOMContentLoaded", () => {
       handleFilterChange();
     } catch (error) {
       console.error(error);
-      alert("募集の開始に失敗しました。");
+      await AppDialog.alert("募集の開始に失敗しました。");
     } finally {
       recruitStartConfirmButton.disabled = false;
       recruitStartConfirmButton.textContent = "募集を開始";
@@ -1081,7 +1095,7 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = `./liveAnswer.html?id=${bookId}`;
     } catch (error) {
       console.error(error);
-      alert("参加処理に失敗しました。");
+      await AppDialog.alert("参加処理に失敗しました。");
       joinButton.disabled = false;
     }
   });
@@ -1629,7 +1643,7 @@ async function handleProfileEditOrSave() {
     const newProfileText = profileTextEdit.value.trim();
 
     if (!newName) {
-      alert("ユーザーネームを入力してください。");
+      await AppDialog.alert("ユーザーネームを入力してください。");
       return;
     }
 
@@ -1682,10 +1696,10 @@ async function handleProfileEditOrSave() {
       profileName.classList.toggle("prize", !updated.isAdmin && hasActivePrize(updated));
 
       resetProfileEditMode();
-      alert("プロフィールを保存しました。");
+      await AppDialog.alert("プロフィールを保存しました。");
     } catch (error) {
       console.error("プロフィール保存エラー:", error);
-      alert("プロフィールの保存に失敗しました: " + error.message);
+      await AppDialog.alert("プロフィールの保存に失敗しました: " + error.message);
       profileEditButton.disabled = false;
       profileEditButton.textContent = "プロフィールを保存";
     }
@@ -1885,7 +1899,7 @@ async function saveImpressionEdit() {
     await openImpressionsModal(impressionEditBookId, impressionEditType);
   } catch (error) {
     console.error("感想の保存エラー:", error);
-    alert("感想の保存に失敗しました。\n" + error);
+    await AppDialog.alert("感想の保存に失敗しました。\n" + error);
   } finally {
     impressionEditSaveButton.disabled = false;
     impressionEditSaveButton.textContent = "保存する";

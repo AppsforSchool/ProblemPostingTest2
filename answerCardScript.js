@@ -84,8 +84,8 @@ document.addEventListener("DOMContentLoaded", () => {
   drawerOverlay.addEventListener("click", closeDrawer);
   drawerLogoutButton.addEventListener("click", handleLogout);
 
-  homeButton.addEventListener("click", () => {
-    if (confirm("本当にやめますか？")) {
+  homeButton.addEventListener("click", async () => {
+    if (await AppDialog.confirm("本当にやめますか？")) {
       window.location.href = "./app.html#cards";
     }
   });
@@ -144,11 +144,11 @@ async function saveImpression() {
       .update({
         [`impressions.${myUserId}`]: text
       });
-    alert("感想を保存しました。");
+    await AppDialog.alert("感想を保存しました。");
     impressionModal.classList.add("hidden");
   } catch (error) {
     console.error("感想の保存エラー:", error);
-    alert("感想の保存に失敗しました。\n" + error);
+    await AppDialog.alert("感想の保存に失敗しました。\n" + error);
   } finally {
     impressionSaveButton.disabled = false;
     impressionSaveButton.textContent = "保存する";
@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const deckId = getParmFromUrl("id");
       if (!deckId) {
-        alert("暗記カードが指定されていません。");
+        await AppDialog.alert("暗記カードが指定されていません。");
         return;
       }
       currentDeckId = deckId;
@@ -201,15 +201,15 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 const handleLogout = async () => {
-  const isConfirmed = confirm("ログアウトしますか？");
+  const isConfirmed = await AppDialog.confirm("ログアウトしますか？");
   if (isConfirmed) {
     try {
       await auth.signOut(auth);
-      alert("ログアウトしました。");
+      await AppDialog.alert("ログアウトしました。");
       window.location.href = "./index.html";
     } catch (error) {
       console.error("ログアウトエラー:", error);
-      alert("ログアウトに失敗しました。");
+      await AppDialog.alert("ログアウトに失敗しました。");
     }
   }
 };
@@ -246,7 +246,7 @@ async function loadDeck(deckId) {
     const deckSnap = await deckRef.get();
 
     if (!deckSnap.exists) {
-      alert("暗記カードが見つかりません。");
+      await AppDialog.alert("暗記カードが見つかりません。");
       return;
     }
 
@@ -279,7 +279,7 @@ async function loadDeck(deckId) {
     return true;
   } catch (error) {
     console.error(error);
-    alert(error);
+    await AppDialog.alert(String(error));
     return false;
   }
 }
