@@ -17,11 +17,11 @@ const MIN_TEXT_ANSWERS = 1;
 const MAX_TEXT_ANSWERS = 6;
 
 let myUserId = "";
+let meIsAdmin = false;
+let currentBookId = "";
+let wasAlreadyPublic = false;
 let imgbbApiKeyCache = null;
 let problemUidCounter = 0;
-
-// ★ ローカルストレージへのバックアップ（作成中は "create" 用の1枠のみ使用）
-const BACKUP_KEY = "problemBookBackup_create";
 
 // ★ ImgBBへの画像アップロード（チャットサイトと同じ仕様：system_keys/imgbb からAPIキーを取得してアップロードし、URLを保存する）
 async function uploadImageToImgbb(file) {
@@ -48,11 +48,19 @@ async function uploadImageToImgbb(file) {
   return result.data.url;
 }
 
+function getParmFromUrl(parm) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(parm);
+}
+
 let loadingOverlay;
 let loadingStatusText;
+let noPermissionOverlay;
+let noPermissionHomeButton;
 let problemsListEl;
 let addProblemButton;
 let submitButton;
+let deleteBookButton;
 let problemTemplate;
 let choiceTemplate;
 let textAnswerTemplate;
@@ -61,6 +69,8 @@ let bookDescriptionInput;
 let bookSubjectSelect;
 let bookGradeSelect;
 let bookShuffleProblemsCheckbox;
+let madeByArea;
+let bookMadeByInput;
 let importJsonButton;
 let importJsonFileInput;
 let exportJsonButton;
@@ -68,9 +78,12 @@ let exportJsonButton;
 document.addEventListener("DOMContentLoaded", () => {
   loadingOverlay = document.getElementById("loading-overlay");
   loadingStatusText = document.getElementById("loading-status-text");
+  noPermissionOverlay = document.getElementById("no-permission-overlay");
+  noPermissionHomeButton = document.getElementById("no-permission-home-button");
   problemsListEl = document.getElementById("problems-list");
   addProblemButton = document.getElementById("add-problem-button");
   submitButton = document.getElementById("submit-button");
+  deleteBookButton = document.getElementById("delete-book-button");
   problemTemplate = document.getElementById("problem-template");
   choiceTemplate = document.getElementById("choice-template");
   textAnswerTemplate = document.getElementById("text-answer-template");
@@ -79,35 +92,46 @@ document.addEventListener("DOMContentLoaded", () => {
   bookSubjectSelect = document.getElementById("book-subject-select");
   bookGradeSelect = document.getElementById("book-grade-select");
   bookShuffleProblemsCheckbox = document.getElementById("book-shuffle-problems-checkbox");
+  madeByArea = document.getElementById("made-by-area");
+  bookMadeByInput = document.getElementById("book-madeBy-input");
   importJsonButton = document.getElementById("import-json-button");
   importJsonFileInput = document.getElementById("import-json-file-input");
   exportJsonButton = document.getElementById("export-json-button");
 
   addProblemButton.addEventListener("click", () => addProblemBlock());
-  submitButton.addEventListener("click", handleSubmit);
+  submitButton.addEventListener("click", handleUpdate);
+  deleteBookButton.addEventListener("click", handleDeleteBook);
+  noPermissionHomeButton.addEventListener("click", () => {
+    window.location.href = "./app.html";
+  });
   importJsonButton.addEventListener("click", () => importJsonFileInput.click());
   importJsonFileInput.addEventListener("change", handleImportJsonFile);
   exportJsonButton.addEventListener("click", handleExportJson);
 
-  // 最初は1問分の入力欄を用意しておく
-  addProblemBlock();
-
-  // ★ 前回の作業データが残っていれば復元するか確認する
-  checkForBackup();
-
-  // ★ 以降の入力変更を検知してバックアップを自動保存する（動的に追加される問題カードもまとめて拾う）
+  // ★ 入力変更を検知してバックアップを自動保存する（動的に追加される問題カードもまとめて拾う）
   const makeContainer = document.querySelector(".make-container");
   makeContainer.addEventListener("input", scheduleBackupSave);
   makeContainer.addEventListener("change", scheduleBackupSave);
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  auth.onAuthStateChanged((user) => {
+  auth.onAuthStateChanged(async (user) => {
     if (user) {
       setLoadingStatus("ユーザー情報を確認しています｡");
       myUserId = user.email.split("@")[0];
+
+      const mySnapshot = await db.collection("users_random").doc(myUserId).get();
+      meIsAdmin = mySnapshot.exists ? !!mySnapshot.data().isAdmin : false;
+
+      currentBookId = getParmFromUrl("id");
+      if (!currentBookId) {
+        await AppDialog.alert("問題集が指定されていません。");
+        window.location.href = "./app.html";
+        return;
+      }
+
+      await loadBookData(currentBookId);
       updateLastChecked();
-      loadingOverlay.classList.add("hidden");
     } else {
       console.log("logout");
       window.location.href = "./index.html";
@@ -128,14 +152,18 @@ function updateLastChecked() {
     .catch(error => console.error("最終アクセス日時の更新エラー:", error));
 }
 
-// ★ ローカルストレージへのバックアップ機能
+// ★ ローカルストレージへのバックアップ機能（編集中の問題集ごとに枠を分ける）
+
+function getBackupKey() {
+  return `problemBookBackup_edit_${currentBookId}`;
+}
 
 function collectBackupSnapshot() {
   const problemCards = Array.from(problemsListEl.querySelectorAll(".problem-card"));
   const problems = problemCards.map(collectProblemForExport);
   const visibilityRadio = document.querySelector(".book-visibility-radio:checked");
 
-  return {
+  const snapshot = {
     title: bookTitleInput.value,
     description: bookDescriptionInput.value,
     subjectId: bookSubjectSelect.value,
@@ -144,11 +172,15 @@ function collectBackupSnapshot() {
     isPrivate: !!visibilityRadio && visibilityRadio.value === "private",
     problems
   };
+  if (meIsAdmin) {
+    snapshot.madeBy = bookMadeByInput.value;
+  }
+  return snapshot;
 }
 
 function saveBackupNow() {
   try {
-    localStorage.setItem(BACKUP_KEY, JSON.stringify(collectBackupSnapshot()));
+    localStorage.setItem(getBackupKey(), JSON.stringify(collectBackupSnapshot()));
   } catch (error) {
     console.error("バックアップの保存に失敗しました:", error);
   }
@@ -161,7 +193,7 @@ function scheduleBackupSave() {
 }
 
 function clearBackup() {
-  localStorage.removeItem(BACKUP_KEY);
+  localStorage.removeItem(getBackupKey());
 }
 
 function applyBackupSnapshot(data) {
@@ -173,10 +205,17 @@ function applyBackupSnapshot(data) {
   if (data.gradeId !== undefined) bookGradeSelect.value = String(data.gradeId);
   if (data.shuffleProblems !== undefined) bookShuffleProblemsCheckbox.checked = !!data.shuffleProblems;
 
-  const visibilityRadios = document.querySelectorAll(".book-visibility-radio");
-  visibilityRadios.forEach(radio => {
-    radio.checked = data.isPrivate ? radio.value === "private" : radio.value === "public";
-  });
+  // 一度公開された問題集は非公開に戻せないため、その場合は復元時も公開設定を変更しない
+  if (!wasAlreadyPublic) {
+    const visibilityRadios = document.querySelectorAll(".book-visibility-radio");
+    visibilityRadios.forEach(radio => {
+      radio.checked = data.isPrivate ? radio.value === "private" : radio.value === "public";
+    });
+  }
+
+  if (meIsAdmin && typeof data.madeBy === "string") {
+    bookMadeByInput.value = data.madeBy;
+  }
 
   const problems = Array.isArray(data.problems) ? data.problems : [];
   if (problems.length > 0) {
@@ -188,7 +227,7 @@ function applyBackupSnapshot(data) {
 async function checkForBackup() {
   let raw;
   try {
-    raw = localStorage.getItem(BACKUP_KEY);
+    raw = localStorage.getItem(getBackupKey());
   } catch (error) {
     console.error("バックアップの読み込みに失敗しました:", error);
     return;
@@ -208,6 +247,89 @@ async function checkForBackup() {
     applyBackupSnapshot(data);
   } else {
     clearBackup();
+  }
+}
+
+async function loadBookData(bookId) {
+  try {
+    setLoadingStatus("問題集の情報を読み込んでいます｡");
+
+    const bookRef = db
+      .collection("ProblemPosting")
+      .doc("books")
+      .collection("data")
+      .doc(bookId);
+    const bookSnap = await bookRef.get();
+
+    if (!bookSnap.exists) {
+      await AppDialog.alert("問題集が見つかりません。");
+      window.location.href = "./app.html";
+      return;
+    }
+
+    const bookData = bookSnap.data();
+
+    if (bookData.madeBy !== myUserId && !meIsAdmin) {
+      loadingOverlay.classList.add("hidden");
+      noPermissionOverlay.classList.remove("hidden");
+      return;
+    }
+
+    bookTitleInput.value = bookData.title || "";
+    bookDescriptionInput.value = bookData.description || "";
+    bookSubjectSelect.value = String(bookData.subjectId || 0);
+    bookGradeSelect.value = String(bookData.gradeId || 0);
+    bookShuffleProblemsCheckbox.checked = !!bookData.shuffleProblems;
+
+    wasAlreadyPublic = !bookData.isPrivate;
+    const visibilityRadios = document.querySelectorAll(".book-visibility-radio");
+    visibilityRadios.forEach(radio => {
+      radio.checked = bookData.isPrivate ? radio.value === "private" : radio.value === "public";
+      // 一度公開された問題集は、非公開に戻せないようにする
+      if (wasAlreadyPublic) {
+        radio.disabled = radio.value === "private";
+      }
+    });
+    const visibilityLockedMessage = document.getElementById("visibility-locked-message");
+    if (visibilityLockedMessage) visibilityLockedMessage.classList.toggle("hidden", !wasAlreadyPublic);
+
+    if (meIsAdmin) {
+      madeByArea.classList.remove("hidden");
+      bookMadeByInput.value = bookData.madeBy || "";
+    }
+
+    const problemsSnap = await bookRef.collection("problems").orderBy("no").get();
+    problemsListEl.innerHTML = "";
+    setLoadingStatus("問題を読み込んでいます｡");
+
+    problemsSnap.forEach(doc => {
+      const data = doc.data();
+      const answer = data.answer || [];
+      const inferredAnswerType = answer.length === 1 ? "single" : "multiple";
+      addProblemBlock({
+        problem: data.problem || "",
+        choices: data.choices || [],
+        answer,
+        answerType: data.answerType || inferredAnswerType,
+        modelAnswer: data.modelAnswer || "",
+        gradingCriteria: data.gradingCriteria || "",
+        shuffleChoices: data.shuffleChoices || false,
+        explanation: data.explanation || "",
+        imageUrl: data.imageUrl || ""
+      });
+    });
+
+    if (problemsListEl.children.length === 0) {
+      addProblemBlock();
+    }
+
+    loadingOverlay.classList.add("hidden");
+
+    // ★ 前回の作業データが残っていれば復元するか確認する（このbookId専用のバックアップ枠）
+    checkForBackup();
+  } catch (error) {
+    console.error(error);
+    await AppDialog.alert("問題集の読み込みに失敗しました。\n" + error);
   }
 }
 
@@ -238,13 +360,12 @@ function addProblemBlock(prefill) {
     updateTextAnswerButtonsState(card);
   });
 
-  setupImageControls(card);
+  setupImageControls(card, prefill ? prefill.imageUrl : "");
   setupAnswerTypeControls(card);
 
   problemsListEl.appendChild(card);
 
   if (prefill) {
-    // JSONインポートなどからの復元
     problemTextInput.value = prefill.problem || "";
     explanationInput.value = prefill.explanation || "";
 
@@ -283,11 +404,9 @@ function addProblemBlock(prefill) {
       addTextAnswerRow(textAnswersListEl);
     }
   } else {
-    // 選択肢を最初から2つ用意しておく
+    // 新規追加時は選択肢を最初から2つ用意しておく
     addChoiceRow(choicesListEl);
     addChoiceRow(choicesListEl);
-
-    // 単語記述用の正解欄も最初から1つ用意しておく
     addTextAnswerRow(textAnswersListEl);
   }
 
@@ -339,7 +458,7 @@ function enforceSingleCorrectChoice(card, keepCheckbox) {
   });
 }
 
-function setupImageControls(card) {
+function setupImageControls(card, existingImageUrl) {
   const selectImageButton = card.querySelector(".select-image-button");
   const imageFileInput = card.querySelector(".image-file-input");
   const previewWrap = card.querySelector(".problem-image-preview-wrap");
@@ -347,6 +466,14 @@ function setupImageControls(card) {
   const removeImageButton = card.querySelector(".remove-image-button");
 
   card._selectedImageFile = null;
+  card._existingImageUrl = existingImageUrl || "";
+  card._imageRemoved = false;
+
+  if (card._existingImageUrl) {
+    previewImg.src = card._existingImageUrl;
+    previewWrap.classList.remove("hidden");
+    selectImageButton.classList.add("hidden");
+  }
 
   selectImageButton.addEventListener("click", () => {
     imageFileInput.click();
@@ -357,6 +484,7 @@ function setupImageControls(card) {
     if (!file) return;
 
     card._selectedImageFile = file;
+    card._imageRemoved = false;
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -369,6 +497,7 @@ function setupImageControls(card) {
 
   removeImageButton.addEventListener("click", () => {
     card._selectedImageFile = null;
+    card._imageRemoved = true;
     imageFileInput.value = "";
     previewImg.src = "";
     previewWrap.classList.add("hidden");
@@ -383,10 +512,10 @@ function addChoiceRow(choicesListEl, prefillText, prefillChecked) {
   const row = fragment.querySelector(".choice-row");
   const removeChoiceButton = row.querySelector(".remove-choice-button");
   const textInput = row.querySelector(".choice-text-input");
-  const correctCheckbox = row.querySelector(".choice-correct-checkbox");
+  const checkbox = row.querySelector(".choice-correct-checkbox");
 
   if (prefillText !== undefined) textInput.value = prefillText;
-  if (prefillChecked) correctCheckbox.checked = true;
+  if (prefillChecked) checkbox.checked = true;
 
   removeChoiceButton.addEventListener("click", () => {
     row.remove();
@@ -394,10 +523,10 @@ function addChoiceRow(choicesListEl, prefillText, prefillChecked) {
     updateChoiceButtonsState(card);
   });
 
-  correctCheckbox.addEventListener("change", () => {
+  checkbox.addEventListener("change", () => {
     const card = choicesListEl.closest(".problem-card");
-    if (correctCheckbox.checked && getAnswerType(card) === "single") {
-      enforceSingleCorrectChoice(card, correctCheckbox);
+    if (checkbox.checked && getAnswerType(card) === "single") {
+      enforceSingleCorrectChoice(card, checkbox);
     }
   });
 
@@ -558,7 +687,7 @@ async function applyImportedBookJson(data) {
     return;
   }
 
-  const isConfirmed = await AppDialog.confirm(`${problems.length}問を読み込みます。現在入力中の問題はすべて置き換えられますがよろしいですか？`);
+  const isConfirmed = await AppDialog.confirm(`${problems.length}問を読み込みます。現在の問題はすべて置き換えられますがよろしいですか？（画像は引き継がれません）`);
   if (!isConfirmed) return;
 
   if (typeof data.title === "string") bookTitleInput.value = data.title;
@@ -578,24 +707,35 @@ async function applyImportedBookJson(data) {
 }
 
 
-async function handleSubmit() {
+async function validateAndCollectPayload() {
   const title = bookTitleInput.value.trim();
   if (!title) {
     await AppDialog.alert("タイトルを入力してください。");
-    return;
+    return null;
   }
 
   const description = bookDescriptionInput.value.trim();
   const subjectId = Number(bookSubjectSelect.value);
   const gradeId = Number(bookGradeSelect.value);
   const shuffleProblems = bookShuffleProblemsCheckbox.checked;
+
   const visibilityRadio = document.querySelector(".book-visibility-radio:checked");
-  const isPrivate = !!visibilityRadio && visibilityRadio.value === "private";
+  // 一度公開された問題集は、UIを迂回されても非公開に戻せないようにする
+  const isPrivate = wasAlreadyPublic ? false : (!!visibilityRadio && visibilityRadio.value === "private");
+
+  let madeBy = null;
+  if (meIsAdmin) {
+    madeBy = bookMadeByInput.value.trim();
+    if (!madeBy) {
+      await AppDialog.alert("作成者のユーザーIDを入力してください。");
+      return null;
+    }
+  }
 
   const problemCards = Array.from(problemsListEl.querySelectorAll(".problem-card"));
   if (problemCards.length === 0) {
     await AppDialog.alert("問題を1問以上追加してください。");
-    return;
+    return null;
   }
 
   const problemsPayload = [];
@@ -607,7 +747,7 @@ async function handleSubmit() {
     const problemText = card.querySelector(".problem-text-input").value.trim();
     if (!problemText) {
       await AppDialog.alert(`${problemNumber}問目の問題文を入力してください。`);
-      return;
+      return null;
     }
 
     const answerType = getAnswerType(card);
@@ -621,13 +761,13 @@ async function handleSubmit() {
       const textAnswerInputs = Array.from(card.querySelectorAll(".text-answer-input"));
       if (textAnswerInputs.length < MIN_TEXT_ANSWERS) {
         await AppDialog.alert(`${problemNumber}問目の正解を${MIN_TEXT_ANSWERS}つ以上入力してください。`);
-        return;
+        return null;
       }
       for (let a = 0; a < textAnswerInputs.length; a++) {
         const text = textAnswerInputs[a].value.trim();
         if (!text) {
           await AppDialog.alert(`${problemNumber}問目の正解${a + 1}を入力してください。`);
-          return;
+          return null;
         }
         answer.push(text);
       }
@@ -635,21 +775,21 @@ async function handleSubmit() {
       modelAnswer = card.querySelector(".model-answer-input").value.trim();
       if (!modelAnswer) {
         await AppDialog.alert(`${problemNumber}問目の模範解答を入力してください。`);
-        return;
+        return null;
       }
       gradingCriteria = card.querySelector(".grading-criteria-input").value.trim();
     } else {
       const choiceRows = Array.from(card.querySelectorAll(".choice-row"));
       if (choiceRows.length < MIN_CHOICES) {
         await AppDialog.alert(`${problemNumber}問目の選択肢は${MIN_CHOICES}個以上入力してください。`);
-        return;
+        return null;
       }
 
       for (let c = 0; c < choiceRows.length; c++) {
         const choiceText = choiceRows[c].querySelector(".choice-text-input").value.trim();
         if (!choiceText) {
           await AppDialog.alert(`${problemNumber}問目の選択肢${c + 1}を入力してください。`);
-          return;
+          return null;
         }
         choices.push(choiceText);
         if (choiceRows[c].querySelector(".choice-correct-checkbox").checked) {
@@ -659,11 +799,11 @@ async function handleSubmit() {
 
       if (answer.length === 0) {
         await AppDialog.alert(`${problemNumber}問目の正解を1つ以上チェックしてください。`);
-        return;
+        return null;
       }
       if (answerType === "single" && answer.length !== 1) {
         await AppDialog.alert(`${problemNumber}問目は単数選択なので、正解は1つだけチェックしてください。`);
-        return;
+        return null;
       }
     }
 
@@ -680,9 +820,19 @@ async function handleSubmit() {
       gradingCriteria,
       shuffleChoices,
       explanation,
-      imageFile: card._selectedImageFile || null
+      imageFile: card._selectedImageFile || null,
+      imageRemoved: !!card._imageRemoved,
+      existingImageUrl: card._existingImageUrl || ""
     });
   }
+
+  return { title, description, subjectId, gradeId, shuffleProblems, isPrivate, madeBy, problemsPayload };
+}
+
+async function handleUpdate() {
+  const collected = await validateAndCollectPayload();
+  if (!collected) return;
+  const { title, description, subjectId, gradeId, shuffleProblems, isPrivate, madeBy, problemsPayload } = collected;
 
   if (!myUserId) {
     await AppDialog.alert("ユーザー情報を確認しています。少し待ってからもう一度お試しください。");
@@ -690,8 +840,10 @@ async function handleSubmit() {
   }
 
   submitButton.disabled = true;
+  deleteBookButton.disabled = true;
   loadingOverlay.classList.remove("hidden");
-  setLoadingStatus("問題集を保存しています｡");
+  const loadingText = loadingOverlay.querySelector("p");
+  if (loadingText) loadingText.textContent = "問題集を更新しています｡";
 
   try {
     const imageCount = problemsPayload.filter(p => p.imageFile).length;
@@ -700,35 +852,45 @@ async function handleSubmit() {
       for (const p of problemsPayload) {
         if (p.imageFile) {
           uploadedCount++;
-          setLoadingStatus(`画像をアップロードしています (${uploadedCount}/${imageCount})｡`);
+          if (loadingText) loadingText.textContent = `画像をアップロードしています (${uploadedCount}/${imageCount})｡`;
           p.imageUrl = await uploadImageToImgbb(p.imageFile);
-        } else {
+        } else if (p.imageRemoved) {
           p.imageUrl = "";
+        } else {
+          p.imageUrl = p.existingImageUrl;
         }
       }
-      setLoadingStatus("問題集を保存しています｡");
+      if (loadingText) loadingText.textContent = "保存しています｡";
     } else {
-      problemsPayload.forEach(p => { p.imageUrl = ""; });
+      problemsPayload.forEach(p => {
+        p.imageUrl = p.imageRemoved ? "" : p.existingImageUrl;
+      });
     }
 
-    const bookRef = await db
+    const bookRef = db
       .collection("ProblemPosting")
       .doc("books")
       .collection("data")
-      .add({
-        title,
-        description,
-        subjectId,
-        gradeId,
-        madeBy: myUserId,
-        problemCount: problemsPayload.length,
-        shuffleProblems,
-        isPrivate,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      .doc(currentBookId);
+
+    const existingProblemsSnap = await bookRef.collection("problems").get();
 
     const batch = db.batch();
+    const bookUpdateData = {
+      title,
+      description,
+      subjectId,
+      gradeId,
+      problemCount: problemsPayload.length,
+      shuffleProblems,
+      isPrivate,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (meIsAdmin && madeBy) {
+      bookUpdateData.madeBy = madeBy;
+    }
+    batch.update(bookRef, bookUpdateData);
+    existingProblemsSnap.forEach(doc => batch.delete(doc.ref));
     problemsPayload.forEach((p, index) => {
       const problemRef = bookRef.collection("problems").doc();
       batch.set(problemRef, {
@@ -746,13 +908,52 @@ async function handleSubmit() {
     });
     await batch.commit();
 
-    await AppDialog.alert("問題集を作成しました！");
+    await AppDialog.alert("問題集を更新しました！");
     clearBackup();
     window.location.href = "./app.html";
   } catch (error) {
     console.error(error);
-    await AppDialog.alert("作成に失敗しました。\n" + error);
+    await AppDialog.alert("更新に失敗しました。\n" + error);
     submitButton.disabled = false;
+    deleteBookButton.disabled = false;
+    loadingOverlay.classList.add("hidden");
+  }
+}
+
+async function handleDeleteBook() {
+  const isConfirmed = await AppDialog.confirm("本当にこの問題集を削除しますか？この操作は取り消せません。", {
+    okText: "削除する",
+    danger: true
+  });
+  if (!isConfirmed) return;
+
+  submitButton.disabled = true;
+  deleteBookButton.disabled = true;
+  loadingOverlay.classList.remove("hidden");
+  const loadingText = loadingOverlay.querySelector("p");
+  if (loadingText) loadingText.textContent = "削除しています｡";
+
+  try {
+    const bookRef = db
+      .collection("ProblemPosting")
+      .doc("books")
+      .collection("data")
+      .doc(currentBookId);
+
+    const problemsSnap = await bookRef.collection("problems").get();
+    const batch = db.batch();
+    problemsSnap.forEach(doc => batch.delete(doc.ref));
+    batch.delete(bookRef);
+    await batch.commit();
+
+    await AppDialog.alert("削除しました。");
+    clearBackup();
+    window.location.href = "./app.html";
+  } catch (error) {
+    console.error(error);
+    await AppDialog.alert("削除に失敗しました。\n" + error);
+    submitButton.disabled = false;
+    deleteBookButton.disabled = false;
     loadingOverlay.classList.add("hidden");
   }
 }

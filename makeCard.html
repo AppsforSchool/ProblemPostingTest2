@@ -1,0 +1,140 @@
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>暗記カードを作成</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="makeCardStyle.css">
+  <link rel="stylesheet" href="appDialogStyle.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+  <div id="loading-overlay" class="">
+    <h1>loading...</h1>
+    <p id="loading-status-text">Firebaseに接続しています｡</p>
+  </div>
+
+  <header id="app-header">
+    <div id="title-area">
+      <a href="./app.html" id="back-button" aria-label="一覧に戻る">&larr;</a>
+      <p id="header-title">暗記カードを作成</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="make-container">
+
+      <section class="make-section">
+        <p class="make-section-title">基本情報</p>
+
+        <label class="make-label" for="deck-title-input">タイトル</label>
+        <input type="text" id="deck-title-input" placeholder="例: 熟語の読み方" maxlength="60">
+
+        <label class="make-label" for="deck-description-input">説明</label>
+        <textarea id="deck-description-input" placeholder="どんな暗記カードか説明を書きましょう" maxlength="200"></textarea>
+
+        <div class="make-inline-fields">
+          <div class="make-inline-field">
+            <label class="make-label" for="deck-subject-select">教科</label>
+            <select id="deck-subject-select">
+              <option value="0">不明</option>
+              <option value="1">国語</option>
+              <option value="2">数学</option>
+              <option value="3">理科</option>
+              <option value="4">英語</option>
+              <option value="5">社会(歴史)</option>
+              <option value="6">社会(地理)</option>
+              <option value="7">社会(公民)</option>
+              <option value="8">保健体育(保健)</option>
+              <option value="9">保健体育(実技)</option>
+            </select>
+          </div>
+          <div class="make-inline-field">
+            <label class="make-label" for="deck-grade-select">学年</label>
+            <select id="deck-grade-select">
+              <option value="0">不明</option>
+              <option value="1">1年</option>
+              <option value="2">2年</option>
+              <option value="3">3年</option>
+              <option value="4">総合</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="shuffle-choices-option">
+          <input type="checkbox" id="deck-allow-flip-checkbox">
+          <span>表と裏を逆転することを許可する</span>
+        </label>
+
+        <label class="make-label">公開設定</label>
+        <div class="answer-type-selector">
+          <label class="answer-type-option">
+            <input type="radio" class="deck-visibility-radio" name="deck-visibility" value="public" checked>
+            <span>公開</span>
+          </label>
+          <label class="answer-type-option">
+            <input type="radio" class="deck-visibility-radio" name="deck-visibility" value="private">
+            <span>非公開</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="make-section">
+        <div class="make-section-header">
+          <p class="make-section-title">カード</p>
+          <div class="import-export-buttons">
+            <button id="import-json-button" type="button" class="io-button">JSON読込</button>
+            <button id="export-json-button" type="button" class="io-button">JSON書出</button>
+          </div>
+        </div>
+        <p class="io-hint">AIで作ったカードをJSON形式で読み込んだり、入力中の内容をJSONとして書き出せます。</p>
+        <input type="file" id="import-json-file-input" accept="application/json,.json" class="hidden">
+
+        <div id="cards-list"></div>
+
+        <button id="add-card-button" type="button" class="add-button">＋ カードを追加</button>
+      </section>
+
+      <button id="submit-button" type="button" class="submit-button">この内容で作成する</button>
+    </div>
+  </main>
+
+  <div id="app-dialog-modal" class="modal-overlay hidden">
+    <div class="modal-content app-dialog-content">
+      <p id="app-dialog-title" class="app-dialog-title hidden"></p>
+      <p id="app-dialog-message" class="app-dialog-message"></p>
+      <div class="app-dialog-actions">
+        <button id="app-dialog-ok-button">OK</button>
+        <button id="app-dialog-cancel-button" class="hidden">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <template id="card-template">
+    <div class="problem-card">
+      <div class="problem-card-header">
+        <p class="problem-card-title"></p>
+        <button type="button" class="remove-problem-button" aria-label="このカードを削除">&times;</button>
+      </div>
+
+      <label class="make-label">表面</label>
+      <textarea class="card-front-input" placeholder="表面に表示する文字列を入力"></textarea>
+
+      <label class="make-label">裏面</label>
+      <textarea class="card-back-input" placeholder="裏面に表示する文字列を入力"></textarea>
+    </div>
+  </template>
+
+  <script src="appDialog.js"></script>
+  <script src="makeCardScript.js"></script>
+</body>
+</html>
