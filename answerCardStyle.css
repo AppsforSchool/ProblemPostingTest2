@@ -1081,6 +1081,10 @@ footer p {
 .flip-card-peek.is-active {
   opacity: 1;
 }
+.flip-card-peek.is-growing {
+  transition: transform 0.26s var(--ease);
+  transform: scale(1) translateY(0);
+}
 .flip-card-peek.is-front {
   background-color: var(--surface);
   border: 2px solid var(--primary);
@@ -1106,6 +1110,10 @@ footer p {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   pointer-events: none;
+}
+.peek-card-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .flip-card-peek.is-front .peek-card-button {
   background-color: var(--primary);

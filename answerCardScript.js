@@ -338,10 +338,10 @@ function showPeek(text, faceClass) {
   flipCardPeekEl.classList.add("is-active");
 }
 function hidePeek() {
-  flipCardPeekEl.classList.remove("is-active");
+  flipCardPeekEl.classList.remove("is-active", "is-growing");
 }
 
-// ★ 次のカードへ(現在のカードが左へスライドして抜けていき、後ろに次のカードが現れる)
+// ★ 次のカードへ(現在のカードが左へスライドして抜けていき、後ろに次のカードが現れて等倍に育つ)
 function goToNextCard() {
   if (isTransitioning) return;
   const nextIndex = currentCardIndex + 1;
@@ -362,24 +362,10 @@ function goToNextCard() {
 
   showPeek(cardsData[nextIndex].front, "is-front");
   flipCardSlideEl.classList.add("card-exit-left");
-
-  let finalized = false;
-  const finalize = () => {
-    if (finalized) return;
-    finalized = true;
-    flipCardSlideEl.removeEventListener("transitionend", onTransitionEnd);
-    applyCardChange(nextIndex, false);
-  };
-  const onTransitionEnd = (event) => {
-    if (event.target !== flipCardSlideEl || event.propertyName !== "transform") return;
-    finalize();
-  };
-  flipCardSlideEl.addEventListener("transitionend", onTransitionEnd);
-  // transitionendが発火しない環境に備えたフォールバック
-  setTimeout(finalize, 420);
+  runExitThenGrow(() => applyCardChange(nextIndex, false));
 }
 
-// ★ 前のカードへ(現在のカードが右へスライドして抜けていき、後ろに前のカードの裏面が現れる)
+// ★ 前のカードへ(現在のカードが右へスライドして抜けていき、後ろに前のカードの裏面が現れて等倍に育つ)
 function goToPreviousCard() {
   if (isTransitioning) return;
   const prevIndex = currentCardIndex - 1;
@@ -391,23 +377,46 @@ function goToPreviousCard() {
 
   showPeek(cardsData[prevIndex].back, "is-back");
   flipCardSlideEl.classList.add("card-exit-right");
+  runExitThenGrow(() => applyCardChange(prevIndex, true)); // 前のカードは「裏」の状態から再開する
+}
 
-  let finalized = false;
-  const finalize = () => {
-    if (finalized) return;
-    finalized = true;
-    flipCardSlideEl.removeEventListener("transitionend", onTransitionEnd);
-    applyCardChange(prevIndex, true); // 前のカードは「裏」の状態から再開する
+// ★ 「今のカードが抜けていく」→「後ろのカードが等倍まで育つ」の2段階を順番に実行し、最後にonDoneを呼ぶ
+function runExitThenGrow(onDone) {
+  let exitFinalized = false;
+  const finalizeExit = () => {
+    if (exitFinalized) return;
+    exitFinalized = true;
+    flipCardSlideEl.removeEventListener("transitionend", onExitTransitionEnd);
+
+    // ★ 覗いていた次/前のカードを、ここで等倍までアニメーションさせて「育てる」
+    flipCardPeekEl.classList.add("is-growing");
+
+    let growFinalized = false;
+    const finalizeGrow = () => {
+      if (growFinalized) return;
+      growFinalized = true;
+      flipCardPeekEl.removeEventListener("transitionend", onGrowTransitionEnd);
+      onDone();
+    };
+    const onGrowTransitionEnd = (event) => {
+      if (event.target !== flipCardPeekEl || event.propertyName !== "transform") return;
+      finalizeGrow();
+    };
+    flipCardPeekEl.addEventListener("transitionend", onGrowTransitionEnd);
+    // transitionendが発火しない環境に備えたフォールバック
+    setTimeout(finalizeGrow, 320);
   };
-  const onTransitionEnd = (event) => {
+  const onExitTransitionEnd = (event) => {
     if (event.target !== flipCardSlideEl || event.propertyName !== "transform") return;
-    finalize();
+    finalizeExit();
   };
-  flipCardSlideEl.addEventListener("transitionend", onTransitionEnd);
-  setTimeout(finalize, 420);
+  flipCardSlideEl.addEventListener("transitionend", onExitTransitionEnd);
+  // transitionendが発火しない環境に備えたフォールバック
+  setTimeout(finalizeExit, 420);
 }
 
 // ★ カード切替の完了処理。新しいカードの内容を反映し、位置/表裏のリセットはアニメーション無しで瞬時に行う
+//   (この時点で覗き見レイヤーは既に等倍まで育っているので、表側カードとサイズが一致しており入れ替えても違和感が無い)
 function applyCardChange(index, showBack) {
   currentCardIndex = index;
 
