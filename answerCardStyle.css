@@ -1082,7 +1082,7 @@ footer p {
   opacity: 1;
 }
 .flip-card-peek.is-growing {
-  transition: transform 0.26s var(--ease);
+  transition: transform 0.5s var(--ease);
   transform: scale(1) translateY(0);
 }
 .flip-card-peek.is-front {
@@ -1130,7 +1130,7 @@ footer p {
   inset: 0;
   z-index: 1;
   perspective: 1000px;
-  transition: transform 0.32s var(--ease), opacity 0.32s var(--ease);
+  transition: transform 0.5s var(--ease), opacity 0.5s var(--ease);
 }
 .flip-card-slide.card-exit-left {
   transform: translateX(-130%) rotate(-8deg);

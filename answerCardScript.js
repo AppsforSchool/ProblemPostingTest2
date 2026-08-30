@@ -341,7 +341,7 @@ function hidePeek() {
   flipCardPeekEl.classList.remove("is-active", "is-growing");
 }
 
-// ★ 次のカードへ(現在のカードが左へスライドして抜けていき、後ろに次のカードが現れて等倍に育つ)
+// ★ 次のカードへ(現在のカードが左へスライドして抜けていくのと同時に、後ろの次のカードが等倍に育つ)
 function goToNextCard() {
   if (isTransitioning) return;
   const nextIndex = currentCardIndex + 1;
@@ -356,16 +356,18 @@ function goToNextCard() {
       cardContainer.classList.add("hidden");
       cardFinishedArea.classList.remove("hidden");
       recordDeckSolved();
-    }, 320);
+    }, 500);
     return;
   }
 
   showPeek(cardsData[nextIndex].front, "is-front");
+  // ★ 抜けていくアニメーションと、育つアニメーションを同時に開始する
   flipCardSlideEl.classList.add("card-exit-left");
-  runExitThenGrow(() => applyCardChange(nextIndex, false));
+  flipCardPeekEl.classList.add("is-growing");
+  runExitAndGrow(() => applyCardChange(nextIndex, false));
 }
 
-// ★ 前のカードへ(現在のカードが右へスライドして抜けていき、後ろに前のカードの裏面が現れて等倍に育つ)
+// ★ 前のカードへ(現在のカードが右へスライドして抜けていくのと同時に、後ろの前のカードの裏面が等倍に育つ)
 function goToPreviousCard() {
   if (isTransitioning) return;
   const prevIndex = currentCardIndex - 1;
@@ -376,43 +378,53 @@ function goToPreviousCard() {
   nextCardButton.disabled = true;
 
   showPeek(cardsData[prevIndex].back, "is-back");
+  // ★ 抜けていくアニメーションと、育つアニメーションを同時に開始する
   flipCardSlideEl.classList.add("card-exit-right");
-  runExitThenGrow(() => applyCardChange(prevIndex, true)); // 前のカードは「裏」の状態から再開する
+  flipCardPeekEl.classList.add("is-growing");
+  runExitAndGrow(() => applyCardChange(prevIndex, true)); // 前のカードは「裏」の状態から再開する
 }
 
-// ★ 「今のカードが抜けていく」→「後ろのカードが等倍まで育つ」の2段階を順番に実行し、最後にonDoneを呼ぶ
-function runExitThenGrow(onDone) {
+// ★ 「今のカードが抜けていく」と「後ろのカードが等倍まで育つ」を同時に走らせ、両方終わったらonDoneを呼ぶ
+function runExitAndGrow(onDone) {
+  let exitDone = false;
+  let growDone = false;
+  const tryFinish = () => {
+    if (exitDone && growDone) onDone();
+  };
+
   let exitFinalized = false;
   const finalizeExit = () => {
     if (exitFinalized) return;
     exitFinalized = true;
     flipCardSlideEl.removeEventListener("transitionend", onExitTransitionEnd);
-
-    // ★ 覗いていた次/前のカードを、ここで等倍までアニメーションさせて「育てる」
-    flipCardPeekEl.classList.add("is-growing");
-
-    let growFinalized = false;
-    const finalizeGrow = () => {
-      if (growFinalized) return;
-      growFinalized = true;
-      flipCardPeekEl.removeEventListener("transitionend", onGrowTransitionEnd);
-      onDone();
-    };
-    const onGrowTransitionEnd = (event) => {
-      if (event.target !== flipCardPeekEl || event.propertyName !== "transform") return;
-      finalizeGrow();
-    };
-    flipCardPeekEl.addEventListener("transitionend", onGrowTransitionEnd);
-    // transitionendが発火しない環境に備えたフォールバック
-    setTimeout(finalizeGrow, 320);
+    exitDone = true;
+    tryFinish();
   };
   const onExitTransitionEnd = (event) => {
     if (event.target !== flipCardSlideEl || event.propertyName !== "transform") return;
     finalizeExit();
   };
   flipCardSlideEl.addEventListener("transitionend", onExitTransitionEnd);
-  // transitionendが発火しない環境に備えたフォールバック
-  setTimeout(finalizeExit, 420);
+
+  let growFinalized = false;
+  const finalizeGrow = () => {
+    if (growFinalized) return;
+    growFinalized = true;
+    flipCardPeekEl.removeEventListener("transitionend", onGrowTransitionEnd);
+    growDone = true;
+    tryFinish();
+  };
+  const onGrowTransitionEnd = (event) => {
+    if (event.target !== flipCardPeekEl || event.propertyName !== "transform") return;
+    finalizeGrow();
+  };
+  flipCardPeekEl.addEventListener("transitionend", onGrowTransitionEnd);
+
+  // transitionendが発火しない環境に備えたフォールバック(2つとも確実に呼ぶ)
+  setTimeout(() => {
+    finalizeExit();
+    finalizeGrow();
+  }, 600);
 }
 
 // ★ カード切替の完了処理。新しいカードの内容を反映し、位置/表裏のリセットはアニメーション無しで瞬時に行う
