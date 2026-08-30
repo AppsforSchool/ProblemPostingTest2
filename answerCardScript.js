@@ -36,6 +36,7 @@ let flipCardSlideEl;
 let flipCardEl;
 let flipCardPeekEl;
 let peekCardText;
+let peekCardButton;
 let cardFrontText;
 let cardBackText;
 let showBackButton;
@@ -65,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   flipCardEl = document.getElementById("flip-card");
   flipCardPeekEl = document.getElementById("flip-card-peek");
   peekCardText = document.getElementById("peek-card-text");
+  peekCardButton = document.getElementById("peek-card-button");
   cardFrontText = document.getElementById("card-front-text");
   cardBackText = document.getElementById("card-back-text");
   showBackButton = document.getElementById("show-back-button");
@@ -327,8 +329,10 @@ function flipInPlace(toBack) {
 }
 
 // ★ 覗き見レイヤー(次/前のカードを、切替アニメーション中だけ後ろにうっすら見せる)
+//   ボタンも一緒に出しておくことで、「ボタンが無い/小さい」ように見えてしまうのを防ぐ(操作は不可のまま)
 function showPeek(text, faceClass) {
   peekCardText.textContent = text;
+  peekCardButton.textContent = faceClass === "is-front" ? "答えをみる" : "次へ";
   flipCardPeekEl.classList.remove("is-front", "is-back");
   flipCardPeekEl.classList.add(faceClass);
   flipCardPeekEl.classList.add("is-active");
