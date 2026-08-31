@@ -313,7 +313,7 @@ function maybeShowNotice(lastOpenedAt) {
 }
 
 const handleLogout = async () => {
-  const isConfirmed = await AppDialog.confirm("ログアウトしますか？");
+  const isConfirmed = await AppDialog.confirm("ログアウトしますか？", { okText: "ログアウトする", danger: true });
   if (isConfirmed) {
     try {
       await auth.signOut(auth);

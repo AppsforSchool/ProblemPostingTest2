@@ -99,6 +99,44 @@
     </div>
   </div>
 
+  <div id="user-list-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">ユーザー一覧</p>
+        <span id="user-list-modal-close" class="close-button">&times;</span>
+      </div>
+      <div id="user-list-area"></div>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <p class="title">プロフィール</p>
+        <span id="profile-modal-close" class="close-button">&times;</span>
+      </div>
+      <div id="profile-area">
+        <div class="profile-avatar-wrap">
+          <div id="profile-avatar-holder"></div>
+          <input type="file" id="profile-avatar-input" accept="image/*" class="visually-hidden-input">
+          <button id="profile-avatar-remove-button" class="hidden">画像を削除</button>
+        </div>
+
+        <p id="profile-name">取得中...</p>
+        <input id="profile-name-input" class="hidden" type="text" placeholder="ユーザーネーム">
+
+        <p class="profile-label">ステータスメッセージ</p>
+        <div id="profile-text">取得中...</div>
+        <textarea id="profile-text-edit" class="hidden" placeholder="自己紹介を入力してください"></textarea>
+
+        <div class="profile-edit-button-row">
+          <button id="profile-cancel-button" class="hidden">キャンセル</button>
+          <button id="profile-edit-button" class="hidden">プロフィールを編集</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="drawerOverlay" class="drawer-overlay"></div>
   <div id="accountSettingsDrawer" class="drawer">
     <div class="drawer-header">
@@ -109,15 +147,11 @@
       <div class="drawer-section">
         <p class="title">現在のユーザー</p>
         <p>ID: <strong id="drawerUserId">取得中...</strong><span></span></p>
-        
+        <p>ユーザーネーム: <strong id="drawerUsername">取得中...</strong></p>
+
+        <button id="drawer-edit-profile-button" class="normal-button" style="margin-bottom: 1rem;">プロフィールを編集</button>
+        <button id="drawer-user-list-button" class="normal-button hidden" style="margin-bottom: 1rem;">ユーザー一覧</button>
         <button id="logout-button" class="logout-button normal-button">ログアウト</button>
-      </div>
-      <div class="drawer-section">
-        <p class="title">ユーザーネーム</p>
-        <p>現在の名前: <strong id="drawerUsername">取得中...</strong></p>
-        <input type="text" id="newUsernameInput" placeholder="新しい名前">
-        <button id="changeUsernameButton" class="normal-button" disabled="true">名前を変更</button>
-        <p id="username-message"></p>
       </div>
     </div>
 </div>
@@ -176,5 +210,6 @@
   </div>
 
   <script src="appDialog.js"></script>
+  <script src="profileSystem.js"></script>
   <script src="answerScript.js"></script>
 </html>

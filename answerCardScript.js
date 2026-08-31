@@ -20,13 +20,16 @@ let currentCardIndex = 0;
 let isTransitioning = false; // ★ カード切替アニメーション中は多重操作を防ぐ
 
 let loadingOverlay;
-let myIsAdmin = false;
+let meIsAdmin = false;
 let drawerOverlay;
 let accountSettingsDrawer;
 let drawerCloseButton;
 let accountSettingsButton;
 let drawerUserId;
+let drawerUsername;
 let drawerLogoutButton;
+let drawerEditProfileButton;
+let drawerUserListButton;
 let homeButton;
 
 let cardContainer;
@@ -56,7 +59,10 @@ document.addEventListener("DOMContentLoaded", () => {
   drawerCloseButton = document.getElementById("drawerCloseButton");
   accountSettingsButton = document.getElementById("setting-button");
   drawerUserId = document.getElementById("drawerUserId");
+  drawerUsername = document.getElementById("drawerUsername");
   drawerLogoutButton = document.getElementById("logout-button");
+  drawerEditProfileButton = document.getElementById("drawer-edit-profile-button");
+  drawerUserListButton = document.getElementById("drawer-user-list-button");
   homeButton = document.getElementById("home-button");
 
   cardContainer = document.getElementById("card-container");
@@ -83,6 +89,10 @@ document.addEventListener("DOMContentLoaded", () => {
   drawerCloseButton.addEventListener("click", closeDrawer);
   drawerOverlay.addEventListener("click", closeDrawer);
   drawerLogoutButton.addEventListener("click", handleLogout);
+  drawerEditProfileButton.addEventListener("click", () => {
+    openProfileModal(myUserId);
+  });
+  drawerUserListButton.addEventListener("click", openUserListModal);
 
   homeButton.addEventListener("click", async () => {
     if (await AppDialog.confirm("本当にやめますか？")) {
@@ -173,7 +183,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const userSnapshot = await db.collection("users_random").doc(myUserId).get();
       const userData = userSnapshot.data();
       myUid = userData.uid;
-      myIsAdmin = !!userData.isAdmin;
+      meIsAdmin = !!userData.isAdmin;
+      setUserCache(myUserId, {
+        name: userData.name,
+        isAdmin: userData.isAdmin,
+        imageUrl: userData.imageUrl || "",
+        profileText: userData.profileText || "",
+        prizeExpiresAt: toMillisOrNull(userData.prizeExpiresAt)
+      });
+      drawerUsername.textContent = userData.name;
+      if (meIsAdmin) {
+        drawerUsername.classList.add("admin");
+      } else if (hasActivePrize(getUserCache(myUserId))) {
+        drawerUsername.classList.add("prize");
+      }
+      drawerUserListButton.classList.toggle("hidden", !meIsAdmin);
 
       const deckId = getParmFromUrl("id");
       if (!deckId) {
@@ -201,7 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 const handleLogout = async () => {
-  const isConfirmed = await AppDialog.confirm("ログアウトしますか？");
+  const isConfirmed = await AppDialog.confirm("ログアウトしますか？", { okText: "ログアウトする", danger: true });
   if (isConfirmed) {
     try {
       await auth.signOut(auth);
@@ -255,7 +279,7 @@ async function loadDeck(deckId) {
     // ★ 非公開の暗記カードは、作成者本人か管理者以外はIDを知っていても解けないようにする
     const isPrivate = !!deckData.isPrivate;
     const madeBy = deckData.madeBy;
-    if (isPrivate && madeBy !== myUserId && !myIsAdmin) {
+    if (isPrivate && madeBy !== myUserId && !meIsAdmin) {
       return false;
     }
 

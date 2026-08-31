@@ -1123,3 +1123,359 @@ footer p {
   }
 }
 
+
+/* ---- ユーザードロワー: ログアウトボタン(app.htmlと統一) ---- */
+.drawer button.logout-button {
+  background-color: var(--surface-alt);
+  color: #d64545;
+  box-shadow: none;
+  border: 1.5px solid var(--border);
+}
+.drawer button.logout-button:hover:not(:disabled) {
+  background-color: #fdecec;
+  border-color: #f3c8c8;
+}
+
+#drawerUsername.prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  animation: wave 4s linear infinite;
+}
+
+/* ---- アバター（頭文字 or 画像アイコン）(app.htmlと統一) ---- */
+.avatar-circle {
+  width: 2.2rem;
+  height: 2.2rem;
+  min-width: 2.2rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(155deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  object-fit: cover;
+}
+.avatar-circle.small {
+  width: 1.7rem;
+  height: 1.7rem;
+  min-width: 1.7rem;
+  font-size: 0.75rem;
+}
+.avatar-circle.large {
+  width: 4.4rem;
+  height: 4.4rem;
+  min-width: 4.4rem;
+  font-size: 1.7rem;
+}
+
+/* ---- ユーザー一覧モーダル(app.htmlと統一) ---- */
+#user-list-area {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  text-align: left;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+#user-list-area p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 0.6rem 0.5rem;
+}
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.6rem 0.5rem;
+  border-radius: var(--radius-sm);
+  gap: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease);
+}
+.member-item:hover {
+  background-color: var(--surface-alt);
+}
+.member-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.member-name {
+  font-weight: bold;
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.member-name.admin {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wave 2s linear infinite;
+}
+.member-name.prize {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wave 4s linear infinite;
+}
+.member-last-checked {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* ---- プロフィールモーダル(app.htmlと統一) ---- */
+#profile-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0.9rem;
+}
+.profile-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.visually-hidden-input {
+  display: none;
+}
+.profile-avatar-wrap #profile-avatar-holder {
+  position: relative;
+}
+.profile-avatar-wrap.editable #profile-avatar-holder {
+  cursor: pointer;
+  transition: opacity 0.15s var(--ease);
+}
+.profile-avatar-wrap.editable #profile-avatar-holder:hover {
+  opacity: 0.82;
+}
+.profile-avatar-wrap.editable #profile-avatar-holder::after {
+  content: "変更";
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+#profile-avatar-remove-button {
+  background: none;
+  border: none;
+  color: #d64545;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  padding: 0;
+}
+#profile-avatar-remove-button.hidden {
+  display: none;
+}
+#profile-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  word-break: break-all;
+  text-align: center;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+#profile-name.admin {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wave 2s linear infinite;
+}
+#profile-name.prize {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  background: linear-gradient(
+    90deg,
+    #ff5a5a, #ffbc41, #f5f551, #5eff5e, #84a1ff, #ff45ff, #ff5a5a
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wave 4s linear infinite;
+}
+#profile-name-input {
+  font-family: "BIZ UDGothic", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-alt);
+  box-sizing: border-box;
+  text-align: center;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+#profile-name-input:hover {
+  border-color: #c7ccd2;
+}
+#profile-name-input:focus {
+  border-color: var(--primary);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
+  outline: none;
+}
+.profile-label {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: -0.3rem;
+}
+#profile-text,
+#profile-text-edit {
+  font-family: "BIZ UDGothic", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  width: 100%;
+  min-height: 110px;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  word-break: break-word;
+  box-sizing: border-box;
+  line-height: 1.55;
+  text-align: left;
+}
+#profile-text {
+  background-color: var(--surface-alt);
+  border: 1.5px solid var(--border);
+  white-space: pre-wrap;
+  color: var(--text);
+}
+#profile-text-edit {
+  background-color: var(--surface);
+  border: 1.5px solid var(--border);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+#profile-text-edit:hover {
+  border-color: #c7ccd2;
+}
+#profile-text-edit:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
+  outline: none;
+}
+#profile-text-edit.hidden {
+  display: none;
+}
+.profile-edit-button-row {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+}
+#profile-cancel-button {
+  font-family: "BIZ UDGothic", sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.7rem;
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  background-color: var(--surface-alt);
+  color: var(--text-muted);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+#profile-cancel-button:hover {
+  background-color: var(--border);
+}
+#profile-cancel-button.hidden {
+  display: none;
+}
+#profile-edit-button {
+  font-family: "BIZ UDGothic", sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.7rem;
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  display: block;
+  box-sizing: border-box;
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), background-color 0.15s var(--ease);
+}
+#profile-edit-button:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+#profile-edit-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+#profile-edit-button:disabled {
+  background-color: #dbe0e6;
+  color: #9aa4ae;
+  box-shadow: none;
+}
+#profile-edit-button.hidden {
+  display: none;
+}

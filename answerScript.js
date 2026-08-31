@@ -33,9 +33,7 @@ let lastDescriptiveSubmission = null;
 
 let myUid = "";
 let myUserId = "";
-
-let userCache = {};
-let userAdminCache = {};
+let meIsAdmin = false;
 
 let problemsData = [];
 
@@ -89,7 +87,10 @@ let accountSettingsDrawer;
 let drawerCloseButton;
 let accountSettingsButton;
 let drawerUserId;
+let drawerUsername;
 let drawerLogoutButton;
+let drawerEditProfileButton;
+let drawerUserListButton;
 document.addEventListener("DOMContentLoaded", () => {
   loadingOverlay = document.getElementById("loading-overlay");
   loadingStatusText = document.getElementById("loading-status-text");
@@ -99,12 +100,19 @@ document.addEventListener("DOMContentLoaded", () => {
   accountSettingsButton = document.getElementById("setting-button");
 
   drawerUserId = document.getElementById("drawerUserId");
+  drawerUsername = document.getElementById("drawerUsername");
   drawerLogoutButton = document.getElementById("logout-button");
+  drawerEditProfileButton = document.getElementById("drawer-edit-profile-button");
+  drawerUserListButton = document.getElementById("drawer-user-list-button");
 
   accountSettingsButton.addEventListener("click", openDrawer);
   drawerCloseButton.addEventListener("click", closeDrawer);
   drawerOverlay.addEventListener("click", closeDrawer);
   drawerLogoutButton.addEventListener("click", handleLogout);
+  drawerEditProfileButton.addEventListener("click", () => {
+    openProfileModal(myUserId);
+  });
+  drawerUserListButton.addEventListener("click", openUserListModal);
 
   answerButton = document.getElementById("answer-button");
   skipButton = document.getElementById("skip-button");
@@ -244,10 +252,21 @@ document.addEventListener("DOMContentLoaded", () => {
         .doc(myUserId)
         .get();
       const userData = userSnapshot.data();
-      userCache[myUserId] = userData.name;
-      userAdminCache[myUserId] = userData.isAdmin;
-      drawerUsername.textContent = userCache[myUserId];
-      if (userAdminCache[myUserId]) drawerUsername.classList.add("admin");
+      setUserCache(myUserId, {
+        name: userData.name,
+        isAdmin: userData.isAdmin,
+        imageUrl: userData.imageUrl || "",
+        profileText: userData.profileText || "",
+        prizeExpiresAt: toMillisOrNull(userData.prizeExpiresAt)
+      });
+      meIsAdmin = userData.isAdmin || false;
+      drawerUsername.textContent = userData.name;
+      if (meIsAdmin) {
+        drawerUsername.classList.add("admin");
+      } else if (hasActivePrize(getUserCache(myUserId))) {
+        drawerUsername.classList.add("prize");
+      }
+      drawerUserListButton.classList.toggle("hidden", !meIsAdmin);
 
       myUid = userData.uid;
 
@@ -303,7 +322,7 @@ function incrementMonthlyProblemCount() {
 }
 
 const handleLogout = async () => {
-  const isConfirmed = await AppDialog.confirm("ログアウトしますか？");
+  const isConfirmed = await AppDialog.confirm("ログアウトしますか？", { okText: "ログアウトする", danger: true });
   if (isConfirmed) {
     try {
       await auth.signOut(auth);
@@ -350,7 +369,7 @@ async function loadProblemBook(bookId) {
     // ★ 非公開の問題集は、作成者本人か管理者以外はIDを知っていても解けないようにする
     const isPrivate = !!bookData.get("isPrivate");
     const madeBy = bookData.get("madeBy");
-    if (isPrivate && madeBy !== myUserId && !userAdminCache[myUserId]) {
+    if (isPrivate && madeBy !== myUserId && !meIsAdmin) {
       return false;
     }
 
